@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Other
+compile_commands.json
+
 # Folders
 third-party/
 .vscode/
