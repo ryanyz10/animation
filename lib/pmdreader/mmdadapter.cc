@@ -13,47 +13,50 @@
 
 using std::endl;
 
-namespace {
-	glm::vec4 conv(const mmd::Vector4f& rhs)
-	{
-		glm::vec4 lhs;
-		lhs[0] = rhs.v[0];
-		lhs[1] = rhs.v[1];
-		lhs[2] = rhs.v[2];
-		lhs[3] = rhs.v[3];
-		return lhs;
-	}
-	glm::vec4 conv(const mmd::Vector3f& rhs)
-	{
-		glm::vec4 lhs;
-		lhs[0] = rhs.v[0];
-		lhs[1] = rhs.v[1];
-		lhs[2] = rhs.v[2];
-	    lhs[3] = 0.0;
-		return lhs;
-	}
-	glm::vec2 conv(const mmd::Vector2f& rhs)
-	{
-		glm::vec2 lhs;
-		lhs[0] = rhs.v[0];
-		lhs[1] = rhs.v[1];
-		return lhs;
-	}
-	glm::uvec3 conv(const mmd::Vector3D<std::uint32_t>& rhs)
-	{
-		glm::uvec3 lhs;
-		lhs[0] = rhs.v[0];
-		lhs[1] = rhs.v[1];
-		lhs[2] = rhs.v[2];
-		return lhs;
-	}
-};
+namespace
+{
+glm::vec4 conv(const mmd::Vector4f &rhs)
+{
+	glm::vec4 lhs;
+	lhs[0] = rhs.v[0];
+	lhs[1] = rhs.v[1];
+	lhs[2] = rhs.v[2];
+	lhs[3] = rhs.v[3];
+	return lhs;
+}
+glm::vec4 conv(const mmd::Vector3f &rhs)
+{
+	glm::vec4 lhs;
+	lhs[0] = rhs.v[0];
+	lhs[1] = rhs.v[1];
+	lhs[2] = rhs.v[2];
+	lhs[3] = 0.0;
+	return lhs;
+}
+glm::vec2 conv(const mmd::Vector2f &rhs)
+{
+	glm::vec2 lhs;
+	lhs[0] = rhs.v[0];
+	lhs[1] = rhs.v[1];
+	return lhs;
+}
+glm::uvec3 conv(const mmd::Vector3D<std::uint32_t> &rhs)
+{
+	glm::uvec3 lhs;
+	lhs[0] = rhs.v[0];
+	lhs[1] = rhs.v[1];
+	lhs[2] = rhs.v[2];
+	return lhs;
+}
+}; // namespace
 
-class MMDAdapter {
+class MMDAdapter
+{
 	bool isBoneHasRoot0(int bone_id)
 	{
-		do {
-			const auto& bone = model_.GetBone(bone_id);
+		do
+		{
+			const auto &bone = model_.GetBone(bone_id);
 			int parent = bone.GetParentIndex();
 			if (parent == mmd::nil)
 				break;
@@ -61,6 +64,7 @@ class MMDAdapter {
 		} while (true);
 		return bone_id == 0;
 	}
+
 public:
 	MMDAdapter()
 	{
@@ -70,20 +74,23 @@ public:
 	{
 	}
 
-	bool open(const std::string& fn)
+	bool open(const std::string &fn)
 	{
-		try {
+		try
+		{
 			mmd::FileReader file(fn);
 			mmd::PmdReader reader(file);
 			reader.ReadModel(model_);
 
 			size_t useful_bone_id = 0;
-			for (size_t i = 0; i < model_.GetBoneNum(); i++) {
-				if (!isBoneHasRoot0(i)) {
+			for (size_t i = 0; i < model_.GetBoneNum(); i++)
+			{
+				if (!isBoneHasRoot0(i))
+				{
 					pmd_bone_to_useful_bone_[i] = -1;
 					continue;
 				}
-				if(!model_.GetBone(i).IsChildUseID() || model_.GetBone(i).GetChildIndex() == 0)
+				if (!model_.GetBone(i).IsChildUseID() || model_.GetBone(i).GetChildIndex() == 0)
 				{
 					pmd_bone_to_useful_bone_[i] = -1;
 					continue;
@@ -92,24 +99,27 @@ public:
 				pmd_bone_to_useful_bone_[i] = useful_bone_id;
 				useful_bone_id++;
 			}
-		} catch (std::exception& e) {
+		}
+		catch (std::exception &e)
+		{
 			std::cerr << e.what() << endl;
 			return false;
 		}
 		return true;
 	}
 
-	void getMesh(std::vector<glm::vec4>& V,
-		     std::vector<glm::uvec3>& F,
-		     std::vector<glm::vec4>& N,
-		     std::vector<glm::vec2>& UV)
+	void getMesh(std::vector<glm::vec4> &V,
+				 std::vector<glm::uvec3> &F,
+				 std::vector<glm::vec4> &N,
+				 std::vector<glm::vec2> &UV)
 	{
 		size_t nv = model_.GetVertexNum();
 		V.resize(nv);
 		N.resize(nv);
 		UV.resize(nv);
-		for (size_t i = 0; i < nv; i++) {
-			const auto& v = model_.GetVertex(i);
+		for (size_t i = 0; i < nv; i++)
+		{
+			const auto &v = model_.GetVertex(i);
 			V[i] = conv(v.GetCoordinate());
 			N[i] = conv(v.GetNormal());
 			UV[i] = conv(v.GetUVCoordinate());
@@ -118,33 +128,36 @@ public:
 		}
 		size_t nf = model_.GetTriangleNum();
 		F.resize(nf);
-		for (size_t i = 0; i < nf; i++) {
-			const auto& f = model_.GetTriangle(i);
+		for (size_t i = 0; i < nf; i++)
+		{
+			const auto &f = model_.GetTriangle(i);
 			F[i] = conv(f);
 		}
 	}
 
-	void getMaterial(std::vector<Material>& vm)
+	void getMaterial(std::vector<Material> &vm)
 	{
 		std::map<std::string, std::shared_ptr<Image>> loaded_tex;
 		vm.resize(model_.GetPartNum());
-		for (size_t i = 0; i < vm.size(); i++) {
-			const auto& part = model_.GetPart(i);
-			const auto& material = part.GetMaterial();
+		for (size_t i = 0; i < vm.size(); i++)
+		{
+			const auto &part = model_.GetPart(i);
+			const auto &material = part.GetMaterial();
 			vm[i].diffuse = conv(material.GetDiffuseColor());
 			vm[i].ambient = conv(material.GetAmbientColor());
 			vm[i].specular = conv(material.GetSpecularColor());
 			vm[i].shininess = material.GetShininess();
 			vm[i].offset = part.GetBaseShift();
 			vm[i].nfaces = part.GetTriangleNum();
-			const mmd::Texture* tex = material.GetTexture();
+			const mmd::Texture *tex = material.GetTexture();
 			if (!tex)
 				continue;
 			std::string texfn = mmd::UTF16ToNativeString(tex->GetTexturePath());
 			if (texfn.empty())
 				continue;
 			auto iter = loaded_tex.find(texfn);
-			if (iter != loaded_tex.end()) {
+			if (iter != loaded_tex.end())
+			{
 				vm[i].texture = iter->second;
 				continue;
 			}
@@ -166,19 +179,23 @@ public:
 		}
 	}
 
-	bool getJoint(int useful_bone_id, glm::vec3& wcoord, int& parent)
+	bool getJoint(int useful_bone_id, glm::vec3 &wcoord, int &parent)
 	{
 		if (useful_bone_id >= int(useful_bone_to_pmd_bone_.size()) || useful_bone_id < 0)
 			return false;
-		int id = useful_bone_to_pmd_bone_[useful_bone_id];		
-		const auto& bone = model_.GetBone(id);
+		int id = useful_bone_to_pmd_bone_[useful_bone_id];
+		const auto &bone = model_.GetBone(id);
 		size_t mmd_parent = bone.GetParentIndex();
 		size_t mmd_child = bone.GetChildIndex();
-		const auto& child_bone = model_.GetBone(mmd_child);
-		if (mmd_parent == mmd::nil) {
+		const auto &child_bone = model_.GetBone(mmd_child);
+		if (mmd_parent == mmd::nil)
+		{
 			parent = -1;
-			wcoord = glm::vec3(conv(child_bone.GetPosition()));
-		} else {
+			// wcoord = glm::vec3(conv(child_bone.GetPosition()));
+			wcoord = glm::vec3(conv(bone.GetPosition()));
+		}
+		else
+		{
 			parent = pmd_bone_to_useful_bone_[int(mmd_parent)];
 			wcoord = glm::vec3(conv(child_bone.GetPosition()));
 		}
@@ -200,7 +217,7 @@ public:
 		return true;
 	}
 
-	void getJointWeights(std::vector<SparseTuple>& tup)
+	void getJointWeights(std::vector<SparseTuple> &tup)
 	{
 		constexpr int SKINNING_BDEF1 = mmd::Model::SkinningOperator::SKINNING_BDEF1;
 		constexpr int SKINNING_BDEF2 = mmd::Model::SkinningOperator::SKINNING_BDEF2;
@@ -209,34 +226,37 @@ public:
 		size_t nv = model_.GetVertexNum();
 		tup.clear();
 		tup.reserve(nv * 2);
-		for (size_t i = 0; i < nv; i++) {
-			const auto& v = model_.GetVertex(i);
+		for (size_t i = 0; i < nv; i++)
+		{
+			const auto &v = model_.GetVertex(i);
 			int skt = v.GetSkinningOperator().GetSkinningType();
 
-			switch (skt) {
-				case SKINNING_BDEF1:
-					{
-						const auto& bdef1 = v.GetSkinningOperator().GetBDEF1();
-						auto bid = pmd_bone_to_useful_bone_[bdef1.GetBoneID()];
-						if (bid >= 0)
-							tup.emplace_back(i, bid, -1, 1.0f);
-					}
-					break;
-				case SKINNING_BDEF2:
-					{
-						const auto& bdef2 = v.GetSkinningOperator().GetBDEF2();
-						auto bid0 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(0)];
-						auto bid1 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(1)];
-						if (bid0 >= 0 && bid1 >= 0) {
-							tup.emplace_back(i, bid0, bid1, bdef2.GetBoneWeight());
-						}
-					}
-					break;
-				case SKINNING_BDEF4:
-					{
-						std::cerr << "We are limited to models that each vertex only binds to at most two bones " << std::endl;
-						throw -1;
-						break;
+			switch (skt)
+			{
+			case SKINNING_BDEF1:
+			{
+				const auto &bdef1 = v.GetSkinningOperator().GetBDEF1();
+				auto bid = pmd_bone_to_useful_bone_[bdef1.GetBoneID()];
+				if (bid >= 0)
+					tup.emplace_back(i, bid, -1, 1.0f);
+			}
+			break;
+			case SKINNING_BDEF2:
+			{
+				const auto &bdef2 = v.GetSkinningOperator().GetBDEF2();
+				auto bid0 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(0)];
+				auto bid1 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(1)];
+				if (bid0 >= 0 && bid1 >= 0)
+				{
+					tup.emplace_back(i, bid0, bid1, bdef2.GetBoneWeight());
+				}
+			}
+			break;
+			case SKINNING_BDEF4:
+			{
+				std::cerr << "We are limited to models that each vertex only binds to at most two bones " << std::endl;
+				throw - 1;
+				break;
 #if 0
 						const auto& bdef4 = v.GetSkinningOperator().GetBDEF4();
 						for (int i = 0 ; i < 4; i++) {
@@ -246,16 +266,17 @@ public:
 							tup.emplace_back(bid, i, bdef4.GetBoneWeight(i));
 						}
 #endif
-					}
-					break;
-				case SKINNING_SDEF:
-					std::cerr << "Unexcepted SkinningOperator " << v.GetSkinningOperator().GetSkinningType() << std::endl;
-					throw -1;
-					break;
+			}
+			break;
+			case SKINNING_SDEF:
+				std::cerr << "Unexcepted SkinningOperator " << v.GetSkinningOperator().GetSkinningType() << std::endl;
+				throw - 1;
+				break;
 			}
 			//std::cerr << bdef2.GetBoneID(0) << "\t" << bdef2.GetBoneID(1) << "\t" << bdef2.GetBoneWeight() << endl;
 		}
 	}
+
 private:
 	mmd::Model model_;
 	std::unordered_map<int, int> useful_bone_to_pmd_bone_, pmd_bone_to_useful_bone_;
@@ -270,30 +291,30 @@ MMDReader::~MMDReader()
 {
 }
 
-bool MMDReader::open(const std::string& fn)
+bool MMDReader::open(const std::string &fn)
 {
 	return d_->open(fn);
 }
 
-void MMDReader::getMesh(std::vector<glm::vec4>& V,
-		std::vector<glm::uvec3>& F,
-		std::vector<glm::vec4>& N,
-		std::vector<glm::vec2>& UV)
+void MMDReader::getMesh(std::vector<glm::vec4> &V,
+						std::vector<glm::uvec3> &F,
+						std::vector<glm::vec4> &N,
+						std::vector<glm::vec2> &UV)
 {
 	d_->getMesh(V, F, N, UV);
 }
 
-void MMDReader::getMaterial(std::vector<Material>& vm)
+void MMDReader::getMaterial(std::vector<Material> &vm)
 {
 	d_->getMaterial(vm);
 }
 
-bool MMDReader::getJoint(int id, glm::vec3& wcoord, int& parent)
+bool MMDReader::getJoint(int id, glm::vec3 &wcoord, int &parent)
 {
 	return d_->getJoint(id, wcoord, parent);
 }
 
-void MMDReader::getJointWeights(std::vector<SparseTuple>& tup)
+void MMDReader::getJointWeights(std::vector<SparseTuple> &tup)
 {
 	d_->getJointWeights(tup);
 }

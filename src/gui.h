@@ -10,15 +10,17 @@ struct Mesh;
 /*
  * Hint: call glUniformMatrix4fv on thest pointers
  */
-struct MatrixPointers {
+struct MatrixPointers
+{
 	const glm::mat4 *projection, *model, *view;
 };
 
-class GUI {
+class GUI
+{
 public:
-	GUI(GLFWwindow*, int view_width = -1, int view_height = -1, int preview_height = -1);
+	GUI(GLFWwindow *, int view_width = -1, int view_height = -1, int preview_height = -1);
 	~GUI();
-	void assignMesh(Mesh*);
+	void assignMesh(Mesh *);
 
 	void keyCallback(int key, int scancode, int action, int mods);
 	void mousePosCallback(double mouse_x, double mouse_y);
@@ -27,28 +29,31 @@ public:
 	void updateMatrices();
 	MatrixPointers getMatrixPointers() const;
 
-	static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-	static void MousePosCallback(GLFWwindow* window, double mouse_x, double mouse_y);
-	static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-	static void MouseScrollCallback(GLFWwindow* window, double dx, double dy);
+	static void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+	static void MousePosCallback(GLFWwindow *window, double mouse_x, double mouse_y);
+	static void MouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
+	static void MouseScrollCallback(GLFWwindow *window, double dx, double dy);
 
 	glm::vec3 getCenter() const { return center_; }
-	const glm::vec3& getCamera() const { return eye_; }
+	const glm::vec3 &getCamera() const { return eye_; }
 	bool isPoseDirty() const { return pose_changed_; }
 	void clearPose() { pose_changed_ = false; }
-	const float* getLightPositionPtr() const { return &light_position_[0]; }
-	
+	const float *getLightPositionPtr() const { return &light_position_[0]; }
+
 	int getCurrentBone() const { return current_bone_; }
-	const int* getCurrentBonePointer() const { return &current_bone_; }
+	const int *getCurrentBonePointer() const { return &current_bone_; }
 	bool setCurrentBone(int i);
+
+	const glm::mat4 &getBoneTransform() const { return bone_transform; }
+	void calcBoneTransform();
 
 	bool isTransparent() const { return transparent_; }
 	bool isPlaying() const { return play_; }
 	float getCurrentPlayTime() const;
 
 private:
-	GLFWwindow* window_;
-	Mesh* mesh_;
+	GLFWwindow *window_;
+	Mesh *mesh_;
 
 	int window_width_, window_height_;
 	int view_width_, view_height_;
@@ -79,6 +84,8 @@ private:
 	glm::mat4 view_matrix_ = glm::lookAt(eye_, center_, up_);
 	glm::mat4 projection_matrix_;
 	glm::mat4 model_matrix_ = glm::mat4(1.0f);
+
+	glm::mat4 bone_transform = glm::mat4(1.0f);
 
 	bool captureWASDUPDOWN(int key, int action);
 

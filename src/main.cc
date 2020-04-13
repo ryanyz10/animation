@@ -26,46 +26,63 @@ int window_height = 720;
 int main_view_width = 960;
 int main_view_height = 720;
 int preview_width = window_width - main_view_width; // 320
-int preview_height = preview_width / 4 * 3; // 320 / 4 * 3 = 240
+int preview_height = preview_width / 4 * 3;			// 320 / 4 * 3 = 240
 int preview_bar_width = preview_width;
 int preview_bar_height = main_view_height;
 const std::string window_title = "Animation";
 
-const char* vertex_shader =
+const char *vertex_shader =
 #include "shaders/default.vert"
-;
+	;
 
-const char* blending_shader =
+const char *blending_shader =
 #include "shaders/blending.vert"
-;
+	;
 
-const char* geometry_shader =
+const char *geometry_shader =
 #include "shaders/default.geom"
-;
+	;
 
-const char* fragment_shader =
+const char *fragment_shader =
 #include "shaders/default.frag"
-;
+	;
 
-const char* floor_fragment_shader =
+const char *floor_fragment_shader =
 #include "shaders/floor.frag"
-;
+	;
 
-const char* bone_vertex_shader =
+const char *bone_vertex_shader =
 #include "shaders/bone.vert"
-;
+	;
 
-const char* bone_fragment_shader =
+const char *bone_fragment_shader =
 #include "shaders/bone.frag"
-;
+	;
 
 // FIXME: Add more shaders here.
 
-void ErrorCallback(int error, const char* description) {
+const char *cylinder_vertex_shader =
+#include "shaders/cylinder.vert"
+	;
+
+const char *cylinder_fragment_shader =
+#include "shaders/cylinder.frag"
+	;
+
+const char *axes_vertex_shader =
+#include "shaders/axes.vert"
+	;
+
+const char *axes_fragment_shader =
+#include "shaders/axes.frag"
+	;
+
+void ErrorCallback(int error, const char *description)
+{
 	std::cerr << "GLFW Error: " << description << "\n";
 }
 
-GLFWwindow* init_glefw()
+GLFWwindow *init_glefw()
 {
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
@@ -81,19 +98,20 @@ GLFWwindow* init_glefw()
 	glfwMakeContextCurrent(ret);
 	glewExperimental = GL_TRUE;
 	CHECK_SUCCESS(glewInit() == GLEW_OK);
-	glGetError();  // clear GLEW's error for it
+	glGetError(); // clear GLEW's error for it
 	glfwSwapInterval(1);
-	const GLubyte* renderer = glGetString(GL_RENDERER);  // get renderer string
-	const GLubyte* version = glGetString(GL_VERSION);    // version as a string
+	const GLubyte *renderer = glGetString(GL_RENDERER); // get renderer string
+	const GLubyte *version = glGetString(GL_VERSION);	// version as a string
 	std::cout << "Renderer: " << renderer << "\n";
 	std::cout << "OpenGL version supported:" << version << "\n";
 
 	return ret;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-	if (argc < 2) {
+	if (argc < 2)
+	{
 		std::cerr << "Input model file is missing" << std::endl;
 		std::cerr << "Usage: " << argv[0] << " <PMD file>" << std::endl;
 		return -1;
@@ -108,18 +126,17 @@ int main(int argc, char* argv[])
 	LineMesh cylinder_mesh;
 	LineMesh axes_mesh;
 
-	// FIXME: we already created meshes for cylinders. Use them to render
-	//        the cylinder and axes if required by the assignment.
 	create_cylinder_mesh(cylinder_mesh);
 	create_axes_mesh(axes_mesh);
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
 	std::cout << "Loaded object  with  " << mesh.vertices.size()
-		<< " vertices and " << mesh.faces.size() << " faces.\n";
+			  << " vertices and " << mesh.faces.size() << " faces.\n";
 
 	glm::vec4 mesh_center = glm::vec4(0.0f);
-	for (size_t i = 0; i < mesh.vertices.size(); ++i) {
+	for (size_t i = 0; i < mesh.vertices.size(); ++i)
+	{
 		mesh_center += mesh.vertices[i];
 	}
 	mesh_center /= mesh.vertices.size();
@@ -152,23 +169,29 @@ int main(int argc, char* argv[])
 	 *      https://en.cppreference.com/w/cpp/language/copy_elision
 	 */
 
-	// FIXME: add more lambdas for data_source if you want to use RenderPass.
-	//        Otherwise, do whatever you like here
-	std::function<const glm::mat4*()> model_data = [&mats]() {
+	std::function<const glm::mat4 *()> model_data = [&mats]() {
 		return mats.model;
 	};
 	std::function<glm::mat4()> view_data = [&mats]() { return *mats.view; };
 	std::function<glm::mat4()> proj_data = [&mats]() { return *mats.projection; };
-	std::function<glm::mat4()> identity_mat = [](){ return glm::mat4(1.0f); };
-	std::function<glm::vec3()> cam_data = [&gui](){ return gui.getCamera(); };
+	std::function<glm::mat4()> identity_mat = []() { return glm::mat4(1.0f); };
+	std::function<glm::vec3()> cam_data = [&gui]() { return gui.getCamera(); };
 	std::function<glm::vec4()> lp_data = [&light_position]() { return light_position; };
 
-	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
+	std::function<glm::mat4()> bone_mat = [&gui]() { return gui.getBoneTransform(); };
+	std::function<std::vector<glm::mat4>()> u_data = [&mesh]() { return mesh.getCurrentQ()->uData(); };
+	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
+
+	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
 	auto std_view = make_uniform("view", view_data);
 	auto std_camera = make_uniform("camera_position", cam_data);
 	auto std_proj = make_uniform("projection", proj_data);
 	auto std_light = make_uniform("light_position", lp_data);
+
+	auto bone_transform = make_uniform("bone_transform", bone_mat);
+	auto u_mats = make_uniform("u_mats", u_data);
+	auto d_mats = make_uniform("d_mats", d_data);
 
 	std::function<float()> alpha_data = [&gui]() {
 		static const float transparet = 0.5; // Alpha constant goes here
@@ -180,27 +203,23 @@ int main(int argc, char* argv[])
 	};
 	auto object_alpha = make_uniform("alpha", alpha_data);
 
-	std::function<std::vector<glm::vec3>()> trans_data = [&mesh](){ return mesh.getCurrentQ()->transData(); };
-	std::function<std::vector<glm::fquat>()> rot_data = [&mesh](){ return mesh.getCurrentQ()->rotData(); };
+	std::function<std::vector<glm::vec3>()> trans_data = [&mesh]() { return mesh.getCurrentQ()->transData(); };
+	std::function<std::vector<glm::fquat>()> rot_data = [&mesh]() { return mesh.getCurrentQ()->rotData(); };
 	auto joint_trans = make_uniform("joint_trans", trans_data);
 	auto joint_rot = make_uniform("joint_rot", rot_data);
-	// FIXME: define more ShaderUniforms for RenderPass if you want to use it.
-	//        Otherwise, do whatever you like here
 
 	// Floor render pass
 	RenderDataInput floor_pass_input;
 	floor_pass_input.assign(0, "vertex_position", floor_vertices.data(), floor_vertices.size(), 4, GL_FLOAT);
 	floor_pass_input.assignIndex(floor_faces.data(), floor_faces.size(), 3);
 	RenderPass floor_pass(-1,
-			floor_pass_input,
-			{ vertex_shader, geometry_shader, floor_fragment_shader},
-			{ floor_model, std_view, std_proj, std_light },
-			{ "fragment_color" }
-			);
+						  floor_pass_input,
+						  {vertex_shader, geometry_shader, floor_fragment_shader},
+						  {floor_model, std_view, std_proj, std_light},
+						  {"fragment_color"});
 
 	// PMD Model render pass
-	// FIXME: initialize the input data at Mesh::loadPmd
-	std::vector<glm::vec2>& uv_coordinates = mesh.uv_coordinates;
+	std::vector<glm::vec2> &uv_coordinates = mesh.uv_coordinates;
 	RenderDataInput object_pass_input;
 	object_pass_input.assign(0, "jid0", mesh.joint0.data(), mesh.joint0.size(), 1, GL_INT);
 	object_pass_input.assign(1, "jid1", mesh.joint1.data(), mesh.joint1.size(), 1, GL_INT);
@@ -209,35 +228,30 @@ int main(int argc, char* argv[])
 	object_pass_input.assign(4, "vector_from_joint1", mesh.vector_from_joint1.data(), mesh.vector_from_joint1.size(), 3, GL_FLOAT);
 	object_pass_input.assign(5, "normal", mesh.vertex_normals.data(), mesh.vertex_normals.size(), 4, GL_FLOAT);
 	object_pass_input.assign(6, "uv", uv_coordinates.data(), uv_coordinates.size(), 2, GL_FLOAT);
-	// TIPS: You won't need vertex position in your solution.
-	//       This only serves the stub shader.
 	object_pass_input.assign(7, "vert", mesh.vertices.data(), mesh.vertices.size(), 4, GL_FLOAT);
 	object_pass_input.assignIndex(mesh.faces.data(), mesh.faces.size(), 3);
 	object_pass_input.useMaterials(mesh.materials);
 	RenderPass object_pass(-1,
-			object_pass_input,
-			{
-			  blending_shader,
-			  geometry_shader,
-			  fragment_shader
-			},
-			{ std_model, std_view, std_proj,
-			  std_light,
-			  std_camera, object_alpha,
-			  joint_trans, joint_rot
-			},
-			{ "fragment_color" }
-			);
+						   object_pass_input,
+						   {blending_shader,
+							geometry_shader,
+							fragment_shader},
+						   {std_model, std_view, std_proj,
+							std_light,
+							std_camera, object_alpha,
+							joint_trans, joint_rot,
+							u_mats, d_mats},
+						   {"fragment_color"});
 
 	// Setup the render pass for drawing bones
-	// FIXME: You won't see the bones until Skeleton::joints were properly
-	//        initialized
 	std::vector<int> bone_vertex_id;
 	std::vector<glm::uvec2> bone_indices;
-	for (int i = 0; i < (int)mesh.skeleton.joints.size(); i++) {
+	for (int i = 0; i < (int)mesh.skeleton.joints.size(); i++)
+	{
 		bone_vertex_id.emplace_back(i);
 	}
-	for (const auto& joint: mesh.skeleton.joints) {
+	for (const auto &joint : mesh.skeleton.joints)
+	{
 		if (joint.parent_index < 0)
 			continue;
 		bone_indices.emplace_back(joint.joint_index, joint.parent_index);
@@ -246,13 +260,29 @@ int main(int argc, char* argv[])
 	bone_pass_input.assign(0, "jid", bone_vertex_id.data(), bone_vertex_id.size(), 1, GL_UNSIGNED_INT);
 	bone_pass_input.assignIndex(bone_indices.data(), bone_indices.size(), 2);
 	RenderPass bone_pass(-1, bone_pass_input,
-			{ bone_vertex_shader, nullptr, bone_fragment_shader},
-			{ std_model, std_view, std_proj, joint_trans },
-			{ "fragment_color" }
-			);
+						 {bone_vertex_shader, nullptr, bone_fragment_shader},
+						 {std_model, std_view, std_proj, joint_trans},
+						 {"fragment_color"});
 
-	// FIXME: Create the RenderPass objects for bones here.
-	//        or do whatever you like.
+	// Cylinder render pass
+	RenderDataInput cylinder_pass_input;
+	cylinder_pass_input.assign(0, "vertex_position", cylinder_mesh.vertices.data(), cylinder_mesh.vertices.size(), 4, GL_FLOAT);
+	cylinder_pass_input.assignIndex(cylinder_mesh.indices.data(), cylinder_mesh.indices.size(), 2);
+	RenderPass cylinder_pass(-1,
+							 cylinder_pass_input,
+							 {cylinder_vertex_shader, nullptr, cylinder_fragment_shader},
+							 {std_model, std_view, std_proj, bone_transform},
+							 {"fragment_color"});
+
+	// Axes render pass
+	RenderDataInput axes_pass_input;
+	axes_pass_input.assign(0, "vertex_position", axes_mesh.vertices.data(), axes_mesh.vertices.size(), 4, GL_FLOAT);
+	axes_pass_input.assignIndex(axes_mesh.indices.data(), axes_mesh.indices.size(), 2);
+	RenderPass axes_pass(-1,
+						 axes_pass_input,
+						 {axes_vertex_shader, nullptr, axes_fragment_shader},
+						 {std_model, std_view, std_proj, bone_transform},
+						 {"fragment_color"});
 
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";
@@ -262,11 +292,13 @@ int main(int argc, char* argv[])
 	bool draw_object = true;
 	bool draw_cylinder = true;
 
-	if (argc >= 3) {
+	if (argc >= 3)
+	{
 		mesh.loadAnimationFrom(argv[2]);
 	}
 
-	while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(window))
+	{
 		// Setup some basic window stuff.
 		glfwGetFramebufferSize(window, &window_width, &window_height);
 		glViewport(0, 0, main_view_width, main_view_height);
@@ -286,24 +318,29 @@ int main(int argc, char* argv[])
 		std::stringstream title;
 		float cur_time = gui.getCurrentPlayTime();
 		title << window_title;
-		if (gui.isPlaying()) {
+		if (gui.isPlaying())
+		{
 			title << " Playing: "
-			      << std::setprecision(2)
-			      << std::setfill('0') << std::setw(6)
-			      << cur_time << " sec";
-			
+				  << std::setprecision(2)
+				  << std::setfill('0') << std::setw(6)
+				  << cur_time << " sec";
+
 			mesh.updateAnimation(cur_time);
-		} else if (gui.isPoseDirty()) {
+		}
+		else if (gui.isPoseDirty())
+		{
 			title << " Editing";
+			mesh.skeleton.fixDmatPosOrient(0);
+			mesh.skeleton.refreshCache();
 			mesh.updateAnimation();
 			gui.clearPose();
 		}
 		else
 		{
 			title << " Paused: "
-				<< std::setprecision(2)
-				<< std::setfill('0') << std::setw(6)
-				<< cur_time << " sec";
+				  << std::setprecision(2)
+				  << std::setfill('0') << std::setw(6)
+				  << cur_time << " sec";
 		}
 
 		glfwSetWindowTitle(window, title.str().data());
@@ -313,28 +350,46 @@ int main(int argc, char* argv[])
 		int current_bone = gui.getCurrentBone();
 
 		// Draw bones first.
-		if (draw_skeleton && gui.isTransparent()) {
+		if (draw_skeleton && gui.isTransparent())
+		{
 			bone_pass.setup();
 			// Draw our lines.
 			// FIXME: you need setup skeleton.joints properly in
 			//        order to see the bones.
 			CHECK_GL_ERROR(glDrawElements(GL_LINES,
-			                              bone_indices.size() * 2,
-			                              GL_UNSIGNED_INT, 0));
+										  bone_indices.size() * 2,
+										  GL_UNSIGNED_INT, 0));
 		}
 		draw_cylinder = (current_bone != -1 && gui.isTransparent());
 
+		// Then draw cylinder
+		if (draw_cylinder)
+		{
+			cylinder_pass.setup();
+			// Draw our cylinder.
+			CHECK_GL_ERROR(glDrawElements(GL_LINES,
+										  cylinder_mesh.indices.size() * 2,
+										  GL_UNSIGNED_INT, 0));
+			axes_pass.setup();
+			// Draw our cylinder.
+			CHECK_GL_ERROR(glDrawElements(GL_LINES,
+										  axes_mesh.indices.size() * 2,
+										  GL_UNSIGNED_INT, 0));
+		}
+
 		// Then draw floor.
-		if (draw_floor) {
+		if (draw_floor)
+		{
 			floor_pass.setup();
 			// Draw our triangles.
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
-			                              floor_faces.size() * 3,
-			                              GL_UNSIGNED_INT, 0));
+										  floor_faces.size() * 3,
+										  GL_UNSIGNED_INT, 0));
 		}
 
 		// Draw the model
-		if (draw_object) {
+		if (draw_object)
+		{
 			object_pass.setup();
 			int mid = 0;
 			while (object_pass.renderWithMaterial(mid))
