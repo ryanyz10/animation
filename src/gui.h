@@ -50,6 +50,7 @@ public:
 	bool isTransparent() const { return transparent_; }
 	bool isPlaying() const { return play_; }
 	float getCurrentPlayTime() const;
+	void incCurrentPlayTime(float secs);
 
 private:
 	GLFWwindow *window_;
@@ -72,6 +73,8 @@ private:
 	float rotation_speed_ = 0.02f;
 	float zoom_speed_ = 0.1f;
 	float aspect_;
+
+	float current_play_time = 0.0f;
 
 	glm::vec3 eye_ = glm::vec3(0.0f, 0.1f, camera_distance_);
 	glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);

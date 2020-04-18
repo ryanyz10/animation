@@ -30,6 +30,26 @@ std::ostream &operator<<(std::ostream &os, const BoundingBox &bounds)
 	return os;
 }
 
+void KeyFrame::toTexture()
+{
+	// TODO save keyframe to texture for preview rendering
+}
+
+void KeyFrame::interpolate(const KeyFrame &from, const KeyFrame &to, float tau, KeyFrame &target)
+{
+	// FIXME assuming the two keyframes are equal size
+	int num_quats = from.rel_rot.size();
+	target.rel_rot.reserve(num_quats);
+
+	for (int i = 0; i < num_quats; i++)
+	{
+		glm::fquat q0 = from.rel_rot[i];
+		glm::fquat q1 = to.rel_rot[i];
+		glm::fquat slerped = glm::pow(q1 * glm::inverse(q0), tau) * q0;
+		target.rel_rot.push_back(slerped);
+	}
+}
+
 const glm::vec3 *Skeleton::collectJointTrans() const
 {
 	return cache.trans.data();
@@ -39,8 +59,6 @@ const glm::fquat *Skeleton::collectJointRot() const
 {
 	return cache.rot.data();
 }
-
-// FIXME: Implement bone animation.
 
 void Skeleton::refreshCache(Configuration *target)
 {
@@ -268,6 +286,29 @@ void Skeleton::fixDmatPosOrient(int jid)
 	}
 }
 
+KeyFrame Skeleton::getKeyFrame()
+{
+	KeyFrame keyframe;
+	for (Joint curr : joints)
+	{
+		keyframe.rel_rot.push_back(curr.rel_orientation);
+	}
+
+	return keyframe;
+}
+
+void Skeleton::updateFromKeyFrame(const KeyFrame &keyframe)
+{
+	// FIXME assume same number of joints and quats
+	// set the rel_orientations of all the joints to the ones in the keyframe
+	int num_joints = joints.size();
+	for (int i = 0; i < num_joints; i++)
+	{
+		joints[i].ti = glm::toMat3(keyframe.rel_rot[i]);
+		// joints[i].rel_orientation = keyframe.rel_rot[i];
+	}
+}
+
 Mesh::Mesh()
 {
 }
@@ -284,16 +325,9 @@ void Mesh::loadPmd(const std::string &fn)
 	computeBounds();
 	mr.getMaterial(materials);
 
-	// FIXME: load skeleton and blend weights from PMD file,
-	//        initialize std::vectors for the vertex attributes,
-	//        also initialize the skeleton as needed
-
-	// joint IDs from 0 to some pos. #
-	// 0 is root, joints form a single tree
-	// ==> we will fetch joints as long as the IDs are valid
 	int id = 0;
-	glm::vec3 wcoord; // api differs from spec, went with api
-	int parent;		  // -1 if root
+	glm::vec3 wcoord;
+	int parent;
 	while (mr.getJoint(id, wcoord, parent))
 	{
 		// add joint to skeleton
@@ -350,6 +384,17 @@ int Mesh::getNumberOfBones() const
 	return skeleton.joints.size();
 }
 
+void Mesh::saveToKeyFrame()
+{
+	// FIXME this is inefficient, maybe should be allocated with new and returned as a reference
+	KeyFrame keyframe = skeleton.getKeyFrame();
+
+	// TODO render to texture
+	keyframe.toTexture();
+
+	keyframes.push_back(keyframe);
+}
+
 void Mesh::computeBounds()
 {
 	bounds.min = glm::vec3(std::numeric_limits<float>::max());
@@ -363,8 +408,30 @@ void Mesh::computeBounds()
 
 void Mesh::updateAnimation(float t)
 {
+	if (t >= 0)
+	{
+		int start_t = (int)(std::floorf(t));
+		int end_t = (int)(std::ceilf(t));
+
+		// TODO check if we've reached past the last keyframe
+		// if so, short circuit and don't do any calculations
+		if (end_t >= keyframes.size())
+		{
+			return;
+		}
+
+		const KeyFrame &from = keyframes[start_t];
+		const KeyFrame &to = keyframes[end_t];
+
+		KeyFrame target;
+
+		KeyFrame::interpolate(from, to, t - start_t, target);
+		skeleton.updateFromKeyFrame(target);
+	}
+
+	skeleton.fixDmatPosOrient(0);
+	skeleton.refreshCache();
 	skeleton.refreshCache(&currentQ_);
-	// FIXME: Support Animation Here
 }
 
 const Configuration *

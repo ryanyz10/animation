@@ -2,6 +2,7 @@
 #define BONE_GEOMETRY_H
 
 #include "config.h"
+#include "texture_to_render.h"
 
 #include <ostream>
 #include <vector>
@@ -79,10 +80,15 @@ struct KeyFrame
 {
 	std::vector<glm::fquat> rel_rot;
 
+	void toTexture();
+
 	static void interpolate(const KeyFrame &from,
 							const KeyFrame &to,
 							float tau,
 							KeyFrame &target);
+
+private:
+	TextureToRender texture;
 };
 
 struct LineMesh
@@ -106,8 +112,6 @@ struct Skeleton
 	const glm::vec3 *collectJointTrans() const;
 	const glm::fquat *collectJointRot() const;
 
-	// FIXME: create skeleton and bone data structures
-
 	// corrects all attributes of the joints
 	void initializeJoints();
 
@@ -119,6 +123,10 @@ struct Skeleton
 
 	// update position and D for the given bone and recursively for its children
 	void fixDmatPosOrient(int jid);
+
+	// save the skeleton to a KeyFrame object
+	KeyFrame getKeyFrame();
+	void updateFromKeyFrame(const KeyFrame &keyframe);
 };
 
 struct Mesh
@@ -126,12 +134,11 @@ struct Mesh
 	Mesh();
 	~Mesh();
 	std::vector<glm::vec4> vertices;
-	/*
-	 * Static per-vertex attrributes for Shaders
-	 */
+
+	// Static per-vertex attrributes for Shaders
 	std::vector<int32_t> joint0;
 	std::vector<int32_t> joint1;
-	std::vector<float> weight_for_joint0; // weight_for_joint1 can be calculated
+	std::vector<float> weight_for_joint0;
 	std::vector<glm::vec3> vector_from_joint0;
 	std::vector<glm::vec3> vector_from_joint1;
 	std::vector<glm::vec4> vertex_normals;
@@ -152,10 +159,14 @@ struct Mesh
 	void saveAnimationTo(const std::string &fn);
 	void loadAnimationFrom(const std::string &fn);
 
+	void saveToKeyFrame();
+
 private:
 	void computeBounds();
 	void computeNormals();
 	Configuration currentQ_;
+
+	std::vector<KeyFrame> keyframes;
 };
 
 #endif

@@ -10,7 +10,7 @@ TextureToRender::TextureToRender()
 TextureToRender::~TextureToRender()
 {
 	if (fb_ < 0)
-		return ;
+		return;
 	unbind();
 	glDeleteFramebuffers(1, &fb_);
 	glDeleteTextures(1, &tex_);
@@ -22,9 +22,12 @@ void TextureToRender::create(int width, int height)
 	w_ = width;
 	h_ = height;
 	// FIXME: Create the framebuffer object backed by a texture
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
 		std::cerr << "Failed to create framebuffer object as render target" << std::endl;
-	} else {
+	}
+	else
+	{
 		std::cerr << "Framebuffer ready" << std::endl;
 	}
 	unbind();

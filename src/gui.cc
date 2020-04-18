@@ -92,14 +92,14 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		return;
 	if (key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT)
 	{
+		if (current_bone_ == -1)
+			return;
+
 		float roll_speed;
 		if (key == GLFW_KEY_RIGHT)
 			roll_speed = -roll_speed_;
 		else
 			roll_speed = roll_speed_;
-
-		if (current_bone_ == -1)
-			return;
 
 		Joint &currentJ = mesh_->skeleton.joints[current_bone_];
 		Joint &parentJ = mesh_->skeleton.joints[currentJ.parent_index];
@@ -138,6 +138,20 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_T && action != GLFW_RELEASE)
 	{
 		transparent_ = !transparent_;
+	}
+	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
+	{
+		mesh_->saveToKeyFrame();
+	}
+	else if (key == GLFW_KEY_P && action == GLFW_RELEASE)
+	{
+		play_ = !play_;
+	}
+	else if (key == GLFW_KEY_R && action == GLFW_RELEASE)
+	{
+		play_ = false;
+		current_play_time = 0.0f;
+		mesh_->updateAnimation(current_play_time);
 	}
 
 	// FIXME: implement other controls here.
@@ -334,7 +348,13 @@ bool GUI::setCurrentBone(int i)
 
 float GUI::getCurrentPlayTime() const
 {
-	return 0.0f;
+	return current_play_time;
+}
+
+// FIXME maybe doesn't work
+void GUI::incCurrentPlayTime(float secs)
+{
+	current_play_time += secs;
 }
 
 bool GUI::captureWASDUPDOWN(int key, int action)

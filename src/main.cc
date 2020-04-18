@@ -297,6 +297,8 @@ int main(int argc, char *argv[])
 		mesh.loadAnimationFrom(argv[2]);
 	}
 
+	auto prev = std::chrono::high_resolution_clock::now();
+
 	while (!glfwWindowShouldClose(window))
 	{
 		// Setup some basic window stuff.
@@ -326,14 +328,18 @@ int main(int argc, char *argv[])
 				  << cur_time << " sec";
 
 			mesh.updateAnimation(cur_time);
+
+			auto now = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<float> diff = now - prev;
+			prev = std::chrono::high_resolution_clock::now();
+			gui.incCurrentPlayTime(diff.count());
 		}
 		else if (gui.isPoseDirty())
 		{
 			title << " Editing";
-			mesh.skeleton.fixDmatPosOrient(0);
-			mesh.skeleton.refreshCache();
 			mesh.updateAnimation();
 			gui.clearPose();
+			prev = std::chrono::high_resolution_clock::now();
 		}
 		else
 		{
@@ -341,6 +347,8 @@ int main(int argc, char *argv[])
 				  << std::setprecision(2)
 				  << std::setfill('0') << std::setw(6)
 				  << cur_time << " sec";
+
+			prev = std::chrono::high_resolution_clock::now();
 		}
 
 		glfwSetWindowTitle(window, title.str().data());
@@ -402,6 +410,7 @@ int main(int argc, char *argv[])
 		}
 
 		// FIXME: Draw previews here, note you need to call glViewport
+
 		// Poll and swap.
 		glfwPollEvents();
 		glfwSwapBuffers(window);

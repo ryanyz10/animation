@@ -1,10 +1,7 @@
 # TODO
-- [ ] 1. `F` key saves a keyframe to an ordered list of keyframes
-For every keyframe, we basically need a list of T_i's as well as a corresponding texture. Because `saveAnimationTo` and `loadAnimationFrom` are defined in the `Mesh` struct, I think we should store the T_i data structure in `Mesh`, since the only argument to those functions is the filename. The textures will each be represented by a `TextureToRender` object. We can probably store a list of them corresponding to the respective keyframe in the keyframe list.
-- [ ] 2. `P` key plays through the list of keyframes, interpolating between positions
-This one probably just toggles a boolean like `playing`. If its `true`, in the render loop we'll advance some `time` float at a certain rate (that will hopefully be changeable). Then depending on `time`, there'll be a mix of 2 keyframes and the blended T_i's which will be assigned to the skeleton and will be rendered. If `playing` is not `true`, we can just render from the Mesh buffer with no need to recompute.
-- [ ] 3. `R` key rewinds to the beginning of the keyframes
-This should just reset `time` to 0 and not affect anything else (namely the `playing` bool)
+- [x] 1. `F` key saves a keyframe to an ordered list of keyframes
+- [x] 2. `P` key plays through the list of keyframes, interpolating between positions
+- [x] 3. `R` key rewinds to the beginning of the keyframes
 - [ ] 4. render keyframes to a texture
 Probably just follow what was said on Piazza (@334, and bug fix in @354)
 - [ ] 5. draw the sequence of textures in the right side of the window
