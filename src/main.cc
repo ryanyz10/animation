@@ -321,11 +321,15 @@ int main(int argc, char *argv[])
 	bool draw_object = true;
 	bool draw_cylinder = true;
 
+	// if this is >= 0, we will render this keyframe's texture
+	int kf_tex_to_render = -1; 
+
 	if (argc >= 3)
 	{
 		try
 		{
 			mesh.loadAnimationFrom(argv[2]);
+			kf_tex_to_render = mesh.getNumKeyFrames() - 1;
 		}
 		catch (int err)
 		{
@@ -358,7 +362,18 @@ int main(int argc, char *argv[])
 		std::stringstream title;
 		float cur_time = gui.getCurrentPlayTime();
 		title << window_title;
-		if (gui.isPlaying())
+		if (kf_tex_to_render >= 0)
+		{
+			title << " Rendering keyframe " << kf_tex_to_render;
+			std::cout << " Rendering keyframe " << kf_tex_to_render 
+				<< " to texture" << std::endl;
+
+			// at integer time t, should be exactly keyframe t
+			mesh.updateAnimation((float) kf_tex_to_render);
+
+			prev = std::chrono::high_resolution_clock::now();
+		}
+		else if (gui.isPlaying())
 		{
 			title << " Playing: "
 				  << std::setprecision(2)
@@ -445,6 +460,13 @@ int main(int argc, char *argv[])
 			if (mid == 0) // Fallback
 				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh.faces.size() * 3, GL_UNSIGNED_INT, 0));
 #endif
+		}
+
+		// not sure this belongs here - render keyframe to texture
+		if (kf_tex_to_render >= 0)
+		{
+			mesh.getKeyFrames()[kf_tex_to_render].texture.create(320, 240);
+			kf_tex_to_render--;
 		}
 
 		// FIXME: Draw previews here, note you need to call glViewport

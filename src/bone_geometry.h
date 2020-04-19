@@ -157,7 +157,7 @@ struct Mesh
 
 	void saveToKeyFrame();
 	int getNumKeyFrames() { return keyframes.size(); }
-	const auto &getKeyFrames() const { return keyframes; }
+	auto &getKeyFrames() { return keyframes; }
 
 private:
 	void computeBounds();
