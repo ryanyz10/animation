@@ -14,6 +14,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <chrono>
 
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/rotate_vector.hpp>
@@ -322,7 +323,16 @@ int main(int argc, char *argv[])
 
 	if (argc >= 3)
 	{
-		mesh.loadAnimationFrom(argv[2]);
+		try
+		{
+			mesh.loadAnimationFrom(argv[2]);
+		}
+		catch (int err)
+		{
+			glfwDestroyWindow(window);
+			glfwTerminate();
+			exit(EXIT_SUCCESS);
+		}
 	}
 
 	auto prev = std::chrono::high_resolution_clock::now();

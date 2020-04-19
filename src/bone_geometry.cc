@@ -402,8 +402,8 @@ void Mesh::updateAnimation(float t)
 {
 	if (t >= 0)
 	{
-		int start_t = (int)(std::floorf(t));
-		int end_t = (int)(std::ceilf(t));
+		uint start_t = (int)(std::floor(t));
+		uint end_t = (int)(std::ceil(t));
 
 		// TODO check if we've reached past the last keyframe
 		// if so, short circuit and don't do any calculations
