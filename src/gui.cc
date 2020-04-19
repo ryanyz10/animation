@@ -309,7 +309,19 @@ void GUI::mouseScrollCallback(double dx, double dy)
 {
 	if (current_x_ < view_width_)
 		return;
-	// FIXME: Mouse Scrolling
+
+	current_preview_row -= (int)(50 * dy);
+
+	// check bounds
+	if (current_preview_row < 0)
+	{
+		current_preview_row = 0;
+	}
+
+	if (current_preview_row > 240 * mesh_->getNumKeyFrames() + 120)
+	{
+		current_preview_row = 240 * mesh_->getNumKeyFrames() + 120;
+	}
 }
 
 void GUI::updateMatrices()

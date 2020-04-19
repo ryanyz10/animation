@@ -77,6 +77,14 @@ const char *axes_fragment_shader =
 #include "shaders/axes.frag"
 	;
 
+const char *preview_vertex_shader =
+#include "shaders/preview.vert"
+	;
+
+const char *preview_fragment_shader =
+#include "shaders/preview.frag"
+	;
+
 void ErrorCallback(int error, const char *description)
 {
 	std::cerr << "GLFW Error: " << description << "\n";
@@ -128,6 +136,15 @@ int main(int argc, char *argv[])
 
 	create_cylinder_mesh(cylinder_mesh);
 	create_axes_mesh(axes_mesh);
+
+	std::vector<glm::vec4> preview_vertices = {glm::vec4(0, 0, 0, 1),
+											   glm::vec4(0, 0, 0, 1),
+											   glm::vec4(0, 0, 0, 1),
+											   glm::vec4(0, 0, 0, 1)};
+	std::vector<glm::uvec2> preview_tex_coords = {glm::uvec2(0, 0),
+												  glm::uvec2(1, 0),
+												  glm::uvec2(0, 1),
+												  glm::uvec2(1, 1)};
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -283,6 +300,17 @@ int main(int argc, char *argv[])
 						 {axes_vertex_shader, nullptr, axes_fragment_shader},
 						 {std_model, std_view, std_proj, bone_transform},
 						 {"fragment_color"});
+
+	// Preview render pass
+	RenderDataInput preview_pass_input;
+	preview_pass_input.assign(0, "vertex_position", axes_mesh.vertices.data(), axes_mesh.vertices.size(), 4, GL_FLOAT);
+	preview_pass_input.assign(1, "tex_coord_in", mesh.joint1.data(), mesh.joint1.size(), 1, GL_INT);
+	preview_pass_input.assignIndex(axes_mesh.indices.data(), axes_mesh.indices.size(), 2);
+	RenderPass preview_pass(-1,
+							preview_pass_input,
+							{preview_vertex_shader, nullptr, preview_fragment_shader},
+							{/*orthomat, frame_shift*/},
+							{"fragment_color"});
 
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";

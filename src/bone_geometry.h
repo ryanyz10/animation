@@ -79,6 +79,7 @@ struct Configuration
 struct KeyFrame
 {
 	std::vector<glm::fquat> rel_rot;
+	TextureToRender texture;
 
 	void toTexture();
 
@@ -86,9 +87,6 @@ struct KeyFrame
 							const KeyFrame &to,
 							float tau,
 							KeyFrame &target);
-
-private:
-	TextureToRender texture;
 };
 
 struct LineMesh
@@ -160,6 +158,8 @@ struct Mesh
 	void loadAnimationFrom(const std::string &fn);
 
 	void saveToKeyFrame();
+	int getNumKeyFrames() { return keyframes.size(); }
+	auto getKeyFrames() { return keyframes; }
 
 private:
 	void computeBounds();

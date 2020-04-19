@@ -30,11 +30,6 @@ std::ostream &operator<<(std::ostream &os, const BoundingBox &bounds)
 	return os;
 }
 
-void KeyFrame::toTexture()
-{
-	// TODO save keyframe to texture for preview rendering
-}
-
 void KeyFrame::interpolate(const KeyFrame &from, const KeyFrame &to, float tau, KeyFrame &target)
 {
 	// FIXME assuming the two keyframes are equal size
@@ -388,10 +383,7 @@ void Mesh::saveToKeyFrame()
 {
 	// FIXME this is inefficient, maybe should be allocated with new and returned as a reference
 	KeyFrame keyframe = skeleton.getKeyFrame();
-
-	// TODO render to texture
-	keyframe.toTexture();
-
+	keyframe.texture.create(320, 240); // FIXME: dimensions?
 	keyframes.push_back(keyframe);
 }
 

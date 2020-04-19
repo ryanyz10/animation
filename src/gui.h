@@ -76,6 +76,8 @@ private:
 
 	float current_play_time = 0.0f;
 
+	int current_preview_row = 0.0;
+
 	glm::vec3 eye_ = glm::vec3(0.0f, 0.1f, camera_distance_);
 	glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 look_ = glm::vec3(0.0f, 0.0f, -1.0f);
