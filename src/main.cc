@@ -178,6 +178,8 @@ int main(int argc, char *argv[])
 	MatrixPointers mats; // Define MatrixPointers here for lambda to capture
 
 	int top_offset = 0;
+	int current_index = 0;
+	int selected_index = 0;
 	unsigned texture_id = 0;
 	unsigned sampler_id = 0;
 
@@ -216,7 +218,7 @@ int main(int argc, char *argv[])
 	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
 
 	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
-	std::function<bool()> border_data = []() { return false; };
+	std::function<bool()> border_data = [&current_index, &selected_index]() { return current_index == selected_index; };
 	std::function<unsigned()> texture_data = [&texture_id] { return texture_id; };
 	std::function<unsigned()> sampler_data = [&sampler_id] { return sampler_id; };
 
@@ -348,15 +350,11 @@ int main(int argc, char *argv[])
 	bool draw_object = true;
 	bool draw_cylinder = true;
 
-	// if this is >= 0, we will render this keyframe's texture
-	int kf_tex_to_render = -1;
-
 	if (argc >= 3)
 	{
 		try
 		{
 			mesh.loadAnimationFrom(argv[2]);
-			kf_tex_to_render = mesh.getNumKeyFrames() - 1;
 		}
 		catch (int err)
 		{
@@ -389,17 +387,7 @@ int main(int argc, char *argv[])
 		std::stringstream title;
 		float cur_time = gui.getCurrentPlayTime();
 		title << window_title;
-		// if (kf_tex_to_render >= 0)
-		// {
-		// 	title << " Rendering keyframe " << kf_tex_to_render;
-		// 	std::cout << " Rendering keyframe " << kf_tex_to_render
-		// 			  << " to texture" << std::endl;
 
-		// 	// at integer time t, should be exactly keyframe t
-		// 	mesh.updateAnimation((float)kf_tex_to_render);
-
-		// 	prev = std::chrono::high_resolution_clock::now();
-		// }
 		if (gui.isPlaying())
 		{
 			title << " Playing: "
@@ -489,18 +477,10 @@ int main(int argc, char *argv[])
 #endif
 		}
 
-		// not sure this belongs here - render keyframe to texture
-		// if (kf_tex_to_render >= 0)
-		// {
-		// 	mesh.getKeyFrames()[kf_tex_to_render].texture->create(960, 720);
-		// 	kf_tex_to_render--;
-		// }
-
-		// render preview sidebar
-
 		int curr_preview_row = gui.getCurrentPreviewRow();
 		int first_keyframe_index = curr_preview_row / 240;
 		top_offset = curr_preview_row % 240;
+		selected_index = gui.getSelectedKeyframe();
 
 		int num_keyframes = mesh.getNumKeyFrames();
 		std::vector<KeyFrame> &keyframes = mesh.getKeyFrames();
@@ -543,19 +523,21 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		// render preview sidebar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
+		for (current_index = first_keyframe_index; current_index < first_keyframe_index + 4; current_index++)
 		{
-			if (i >= num_keyframes)
+			if (current_index >= num_keyframes)
 			{
 				break;
 			}
 
-			KeyFrame &keyframe = keyframes[i];
+			KeyFrame &keyframe = keyframes[current_index];
 			texture_id = keyframe.texture->getTexture();
+
 			preview_pass.setup();
 
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));

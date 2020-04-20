@@ -59,6 +59,7 @@ void Mesh::loadAnimationFrom(const std::string &fn)
 			glm::fquat q(jayson[f][j][0], jayson[f][j][1], jayson[f][j][2], jayson[f][j][3]);
 			kf.rel_rot.push_back(q);
 		}
+		kf.texture = nullptr;
 		keyframes.push_back(kf);
 	}
 }

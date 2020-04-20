@@ -156,6 +156,8 @@ struct Mesh
 	void loadAnimationFrom(const std::string &fn);
 
 	void saveToKeyFrame();
+	void updateKeyFrame(int index);
+	void deleteKeyFrame(int index);
 	int getNumKeyFrames() { return keyframes.size(); }
 	std::vector<KeyFrame> &getKeyFrames() { return keyframes; }
 

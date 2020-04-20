@@ -143,23 +143,6 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
 	{
 		mesh_->saveToKeyFrame();
-
-		// GLint m_viewport[4];
-		// glGetIntegerv(GL_VIEWPORT, m_viewport);
-		// GLint width = m_viewport[2];
-		// GLint height = m_viewport[3];
-
-		// GLint id = mesh_->getKeyFrames()[mesh_->getNumKeyFrames() - 1].texture->getTexture();
-		// glBindTexture(GL_TEXTURE_2D, id);
-
-		// // rgb image
-		// glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_viewport[0],
-		// 				 m_viewport[1], m_viewport[2], m_viewport[3], 0);
-
-		// glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		// char *raw_img = (char *)malloc(sizeof(char) * width * height * 3);
-		// glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, raw_img);
-		// SaveJPEG("output_pic.jpeg", width, height, reinterpret_cast<const unsigned char *>(raw_img));
 	}
 	else if (key == GLFW_KEY_P && action == GLFW_RELEASE)
 	{
@@ -170,6 +153,56 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		play_ = false;
 		current_play_time = 0.0f;
 		mesh_->updateAnimation(current_play_time);
+	}
+	else if (key == GLFW_KEY_U && action == GLFW_RELEASE)
+	{
+		if (selected_keyframe == -1)
+		{
+			return;
+		}
+
+		mesh_->updateKeyFrame(selected_keyframe);
+	}
+	else if (key == GLFW_KEY_DELETE && action == GLFW_RELEASE)
+	{
+		if (selected_keyframe == -1)
+		{
+			return;
+		}
+		mesh_->deleteKeyFrame(selected_keyframe);
+	}
+	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+	{
+		if (selected_keyframe == -1)
+			return;
+
+		// TODO should we pause?
+		current_play_time = (float)selected_keyframe;
+		mesh_->updateAnimation(current_play_time);
+	}
+	else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE)
+	{
+		selected_keyframe--;
+		if (selected_keyframe < 0)
+			selected_keyframe = 0;
+
+		if (current_preview_row > 240 * selected_keyframe)
+		{
+			current_preview_row = 240 * selected_keyframe;
+		}
+	}
+	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
+	{
+		selected_keyframe += 1;
+		if (selected_keyframe >= mesh_->getNumKeyFrames())
+		{
+			selected_keyframe -= 1;
+		}
+
+		if (current_preview_row + window_height_ < 240 * (selected_keyframe + 1))
+		{
+			current_preview_row = 240 * (selected_keyframe + 1) - window_height_;
+		}
 	}
 
 	// FIXME: implement other controls here.
@@ -320,7 +353,34 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 		current_button_ = button;
 		return;
 	}
+
 	// FIXME: Key Frame Selection
+	if (action != GLFW_RELEASE)
+	{
+		return;
+	}
+
+	int first_index = current_preview_row / 240;
+	// top_offset is how much of the first_index kf is NOT visible
+	int top_offset = current_preview_row % 240;
+
+	//                  ____
+	//    _____________ __|__ top_offset
+	//   |            |   |
+	//   |            |   |    current_y
+	//   |            | __|__
+	//   |            |
+
+	int test_keyframe = first_index + (((window_height_ - current_y_) + top_offset) / 240);
+
+	if (test_keyframe == selected_keyframe)
+	{
+		selected_keyframe = -1;
+	}
+	else
+	{
+		selected_keyframe = test_keyframe;
+	}
 }
 
 void GUI::mouseScrollCallback(double dx, double dy)

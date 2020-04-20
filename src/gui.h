@@ -54,6 +54,7 @@ public:
 	void incCurrentPlayTime(float secs);
 
 	int getCurrentPreviewRow() const { return current_preview_row; }
+	int getSelectedKeyframe() const { return selected_keyframe; }
 
 private:
 	GLFWwindow *window_;
@@ -79,6 +80,7 @@ private:
 
 	float current_play_time = 0.0f;
 	int current_preview_row = 0;
+	int selected_keyframe = -1;
 
 	glm::vec3 eye_ = glm::vec3(0.0f, 0.1f, camera_distance_);
 	glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);

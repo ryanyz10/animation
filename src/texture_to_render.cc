@@ -9,7 +9,6 @@ TextureToRender::TextureToRender()
 
 TextureToRender::~TextureToRender()
 {
-	printf("deleting\n");
 	if (fb_ < 0)
 		return;
 	unbind();
