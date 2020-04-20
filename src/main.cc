@@ -151,10 +151,10 @@ int main(int argc, char *argv[])
 	quad_indices.push_back(glm::uvec3(0, 1, 2));
 	quad_indices.push_back(glm::uvec3(2, 3, 0));
 
-	// std::vector<glm::vec2> quad_uv;
-	// quad_uv.push_back(glm::vec2(1.0f, 0.0f));
-	// quad_uv.push_back(glm::vec2(0.0f, 0.0f));
-	// quad_uv.push_back(glm::vec2(0.0f, 1.0f));
+	std::vector<glm::vec2> quad_uv;
+	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
+	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
+	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
 	MatrixPointers mats; // Define MatrixPointers here for lambda to capture
 
 	int top_offset = 0;
-	int texture_id = 0;
-	int sampler_id = 0;
+	unsigned texture_id = 0;
+	unsigned sampler_id = 0;
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -216,8 +216,8 @@ int main(int argc, char *argv[])
 
 	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
 	std::function<bool()> border_data = []() { return true; };
-	std::function<int()> texture_data = [&texture_id] { return texture_id; };
-	std::function<int()> sampler_data = [&sampler_id] { return sampler_id; };
+	std::function<unsigned()> texture_data = [&texture_id] { return texture_id; };
+	std::function<unsigned()> sampler_data = [&sampler_id] { return sampler_id; };
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
 	// Preview render pass
 	RenderDataInput preview_pass_input;
 	preview_pass_input.assign(0, "vertex_position", quad_vertices.data(), quad_vertices.size(), 4, GL_FLOAT);
-	// preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
+	preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
 	preview_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 3);
 	RenderPass preview_pass(-1,
 							preview_pass_input,

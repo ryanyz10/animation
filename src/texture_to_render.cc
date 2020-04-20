@@ -54,7 +54,6 @@ void TextureToRender::create(int width, int height)
 
 		// Render to our framebuffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glBindFramebuffer(GL_FRAMEBUFFER, fb_);
 		glViewport(0, 0, w_, h_);
 	}
 

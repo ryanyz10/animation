@@ -336,9 +336,9 @@ void GUI::mouseScrollCallback(double dx, double dy)
 		current_preview_row = 0;
 	}
 
-	if (current_preview_row > 240 * mesh_->getNumKeyFrames() + 120)
+	if (current_preview_row > 240 * mesh_->getNumKeyFrames() - 120)
 	{
-		current_preview_row = 240 * mesh_->getNumKeyFrames() + 120;
+		current_preview_row = 240 * mesh_->getNumKeyFrames() - 120;
 	}
 }
 
