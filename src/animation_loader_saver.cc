@@ -11,11 +11,12 @@
 #include "json.hpp"
 
 using json = nlohmann::json;
-namespace {
-	const glm::fquat identity(1.0, 0.0, 0.0, 0.0);
+namespace
+{
+const glm::fquat identity(1.0, 0.0, 0.0, 0.0);
 }
 
-void Mesh::saveAnimationTo(const std::string& fn)
+void Mesh::saveAnimationTo(const std::string &fn)
 {
 	json jayson;
 	const int FRAMES = keyframes.size();
@@ -25,7 +26,7 @@ void Mesh::saveAnimationTo(const std::string& fn)
 		for (int j = 0; j < JOINTS; j++)
 		{
 			glm::quat q = keyframes[f].rel_rot[j];
-			jayson[f][j] = { q.w, q.x, q.y, q.z };
+			jayson[f][j] = {q.w, q.x, q.y, q.z};
 		}
 	}
 	std::ofstream out(fn);
@@ -33,7 +34,7 @@ void Mesh::saveAnimationTo(const std::string& fn)
 	std::cout << "Saved animation to " << fn << std::endl;
 }
 
-void Mesh::loadAnimationFrom(const std::string& fn)
+void Mesh::loadAnimationFrom(const std::string &fn)
 {
 	std::ifstream in(fn);
 	json jayson;
@@ -46,7 +47,7 @@ void Mesh::loadAnimationFrom(const std::string& fn)
 	if (skeleton.joints.size() != JOINTS)
 	{
 		std::cerr << "## Joints in json (" << JOINTS << ") differed from joints in model ("
-			<< skeleton.joints.size() << ") ##\n## Incompatible models, exiting ##" << std::endl;
+				  << skeleton.joints.size() << ") ##\n## Incompatible models, exiting ##" << std::endl;
 		throw 0;
 	}
 
@@ -55,9 +56,8 @@ void Mesh::loadAnimationFrom(const std::string& fn)
 		KeyFrame kf;
 		for (int j = 0; j < JOINTS; j++)
 		{
-			glm::fquat q (jayson[f][j][0], jayson[f][j][1], jayson[f][j][2], jayson[f][j][3]);
+			glm::fquat q(jayson[f][j][0], jayson[f][j][1], jayson[f][j][2], jayson[f][j][3]);
 			kf.rel_rot.push_back(q);
-
 		}
 		keyframes.push_back(kf);
 	}

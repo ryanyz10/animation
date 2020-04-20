@@ -389,18 +389,18 @@ int main(int argc, char *argv[])
 		std::stringstream title;
 		float cur_time = gui.getCurrentPlayTime();
 		title << window_title;
-		if (kf_tex_to_render >= 0)
-		{
-			title << " Rendering keyframe " << kf_tex_to_render;
-			std::cout << " Rendering keyframe " << kf_tex_to_render
-					  << " to texture" << std::endl;
+		// if (kf_tex_to_render >= 0)
+		// {
+		// 	title << " Rendering keyframe " << kf_tex_to_render;
+		// 	std::cout << " Rendering keyframe " << kf_tex_to_render
+		// 			  << " to texture" << std::endl;
 
-			// at integer time t, should be exactly keyframe t
-			mesh.updateAnimation((float)kf_tex_to_render);
+		// 	// at integer time t, should be exactly keyframe t
+		// 	mesh.updateAnimation((float)kf_tex_to_render);
 
-			prev = std::chrono::high_resolution_clock::now();
-		}
-		else if (gui.isPlaying())
+		// 	prev = std::chrono::high_resolution_clock::now();
+		// }
+		if (gui.isPlaying())
 		{
 			title << " Playing: "
 				  << std::setprecision(2)
@@ -489,7 +489,6 @@ int main(int argc, char *argv[])
 #endif
 		}
 
-		// FIXME this isn't correct
 		// not sure this belongs here - render keyframe to texture
 		// if (kf_tex_to_render >= 0)
 		// {
