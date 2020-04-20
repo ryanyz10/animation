@@ -9,6 +9,7 @@ TextureToRender::TextureToRender()
 
 TextureToRender::~TextureToRender()
 {
+	printf("deleting\n");
 	if (fb_ < 0)
 		return;
 	unbind();
@@ -57,7 +58,7 @@ void TextureToRender::create(int width, int height)
 		glViewport(0, 0, w_, h_);
 	}
 
-	unbind();
+	// unbind();
 }
 
 void TextureToRender::bind()

@@ -152,9 +152,10 @@ int main(int argc, char *argv[])
 	quad_indices.push_back(glm::uvec3(2, 3, 0));
 
 	std::vector<glm::vec2> quad_uv;
+	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
+	quad_uv.push_back(glm::vec2(1.0f, 1.0f));
 	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
 	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
-	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -215,7 +216,7 @@ int main(int argc, char *argv[])
 	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
 
 	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
-	std::function<bool()> border_data = []() { return true; };
+	std::function<bool()> border_data = []() { return false; };
 	std::function<unsigned()> texture_data = [&texture_id] { return texture_id; };
 	std::function<unsigned()> sampler_data = [&sampler_id] { return sampler_id; };
 
@@ -492,14 +493,11 @@ int main(int argc, char *argv[])
 		// not sure this belongs here - render keyframe to texture
 		// if (kf_tex_to_render >= 0)
 		// {
-		// 	mesh.getKeyFrames()[kf_tex_to_render].texture->create(1280, 720);
+		// 	mesh.getKeyFrames()[kf_tex_to_render].texture->create(960, 720);
 		// 	kf_tex_to_render--;
 		// }
 
 		// render preview sidebar
-		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
 
 		int curr_preview_row = gui.getCurrentPreviewRow();
 		int first_keyframe_index = curr_preview_row / 240;
@@ -507,6 +505,49 @@ int main(int argc, char *argv[])
 
 		int num_keyframes = mesh.getNumKeyFrames();
 		std::vector<KeyFrame> &keyframes = mesh.getKeyFrames();
+
+		// make sure the texture exist
+		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
+		{
+			if (i >= num_keyframes)
+			{
+				break;
+			}
+
+			KeyFrame &keyframe = keyframes[i];
+			if (keyframe.texture == nullptr)
+			{
+				TextureToRender *texture = new TextureToRender();
+				texture->create(960, 720);
+
+				mesh.updateAnimation(i);
+
+				if (draw_floor)
+				{
+					floor_pass.setup();
+					CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
+												  floor_faces.size() * 3,
+												  GL_UNSIGNED_INT, 0));
+				}
+
+				if (draw_object)
+				{
+					object_pass.setup();
+					int mid = 0;
+					while (object_pass.renderWithMaterial(mid))
+						mid++;
+				}
+
+				texture->unbind();
+
+				keyframe.texture = texture;
+			}
+		}
+
+		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glClear(GL_DEPTH_BUFFER_BIT);
 		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
 		{
 			if (i >= num_keyframes)
@@ -517,8 +558,7 @@ int main(int argc, char *argv[])
 			KeyFrame &keyframe = keyframes[i];
 			texture_id = keyframe.texture->getTexture();
 			preview_pass.setup();
-			// CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
-			// CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
+
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
 			top_offset -= 240;
