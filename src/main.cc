@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	create_axes_mesh(axes_mesh);
 
 	std::vector<glm::vec4> quad_vertices;
-	std::vector<glm::uvec4> quad_indices;
+	std::vector<glm::uvec3> quad_indices;
 
 	// FIXME this is probably dumb
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
@@ -148,15 +148,12 @@ int main(int argc, char *argv[])
 	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
 
-	quad_indices.push_back(glm::uvec4(0, 1, 2, 3));
-
-	// quad_indices.push_back(glm::uvec3(0, 1, 2));
-	// quad_indices.push_back(glm::uvec3(0, 2, 3));
+	quad_indices.push_back(glm::uvec3(0, 1, 3));
+	quad_indices.push_back(glm::uvec3(2, 3, 1));
 
 	std::vector<glm::vec2> quad_uv;
 	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
 	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
-	quad_uv.push_back(glm::vec2(1.0f, 1.0f));
 	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
 
 	Mesh mesh;
@@ -180,6 +177,7 @@ int main(int argc, char *argv[])
 	MatrixPointers mats; // Define MatrixPointers here for lambda to capture
 
 	int top_offset = 0;
+	int texture_id = 0;
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -217,6 +215,7 @@ int main(int argc, char *argv[])
 
 	std::function<float()> offset_data = [&top_offset]() { return 2.0f - ((float)(2.0f * top_offset) / (float)preview_bar_height); };
 	std::function<bool()> border_data = []() { return false; };
+	std::function<int()> texture_data = [&texture_id] { return texture_id; };
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
@@ -231,6 +230,7 @@ int main(int argc, char *argv[])
 
 	auto frame_shift = make_uniform("frame_shift", offset_data);
 	auto show_border = make_uniform("show_border", border_data);
+	auto sampler = make_uniform("sampler", texture_data);
 
 	std::function<float()>
 		alpha_data = [&gui]() {
@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
 	// Axes render pass
 	RenderDataInput axes_pass_input;
 	axes_pass_input.assign(0, "vertex_position", axes_mesh.vertices.data(), axes_mesh.vertices.size(), 4, GL_FLOAT);
-	axes_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 4);
+	axes_pass_input.assignIndex(axes_mesh.indices.data(), axes_mesh.indices.size(), 2);
 	RenderPass axes_pass(-1,
 						 axes_pass_input,
 						 {axes_vertex_shader, nullptr, axes_fragment_shader},
@@ -330,11 +330,11 @@ int main(int argc, char *argv[])
 	RenderDataInput preview_pass_input;
 	preview_pass_input.assign(0, "vertex_position", quad_vertices.data(), quad_vertices.size(), 4, GL_FLOAT);
 	preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
-	preview_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 4);
+	preview_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 3);
 	RenderPass preview_pass(-1,
 							preview_pass_input,
 							{preview_vertex_shader, nullptr, preview_fragment_shader},
-							{frame_shift, show_border},
+							{frame_shift, show_border, sampler},
 							{"fragment_color"});
 
 	float aspect = 0.0f;
@@ -496,6 +496,9 @@ int main(int argc, char *argv[])
 		// FIXME: Draw previews here, note you need to call glViewport
 		// render preview sidebar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+
 		int curr_preview_row = gui.getCurrentPreviewRow();
 		int first_keyframe_index = curr_preview_row / 240;
 		top_offset = curr_preview_row % 240;
@@ -511,10 +514,9 @@ int main(int argc, char *argv[])
 
 			preview_pass.setup();
 			TextureToRender curr_texture = keyframes[i].texture;
-			int texture_id = curr_texture.getTexture();
+			texture_id = curr_texture.getTexture();
 			CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
-			CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
-			CHECK_GL_ERROR(glDrawElements(GL_PATCHES, quad_indices.size() * 4, GL_UNSIGNED_INT, 0));
+			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
 			top_offset += 240;
 		}
