@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 
 	int top_offset = 0;
 	int texture_id = 0;
+	int sampler_id = 0;
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -214,8 +215,9 @@ int main(int argc, char *argv[])
 	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
 
 	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
-	std::function<bool()> border_data = []() { return false; };
+	std::function<bool()> border_data = []() { return true; };
 	std::function<int()> texture_data = [&texture_id] { return texture_id; };
+	std::function<int()> sampler_data = [&sampler_id] { return sampler_id; };
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
@@ -230,16 +232,16 @@ int main(int argc, char *argv[])
 
 	auto frame_shift = make_uniform("frame_shift", offset_data);
 	auto show_border = make_uniform("show_border", border_data);
-	auto sampler = make_uniform("sampler", texture_data);
+	auto sampler = make_texture("sampler", sampler_data, 0, texture_data);
 
 	std::function<float()>
 		alpha_data = [&gui]() {
-			static const float transparet = 0.5; // Alpha constant goes here
-			static const float non_transparet = 1.0;
+			static const float transparent = 0.5; // Alpha constant goes here
+			static const float non_transparent = 1.0;
 			if (gui.isTransparent())
-				return transparet;
+				return transparent;
 			else
-				return non_transparet;
+				return non_transparent;
 		};
 	auto object_alpha = make_uniform("alpha", alpha_data);
 
@@ -512,11 +514,11 @@ int main(int argc, char *argv[])
 				break;
 			}
 
-			preview_pass.setup();
 			KeyFrame &keyframe = keyframes[i];
 			texture_id = keyframe.texture->getTexture();
-			CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
-			CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
+			preview_pass.setup();
+			// CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
+			// CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
 			top_offset -= 240;
