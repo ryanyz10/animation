@@ -383,7 +383,9 @@ void Mesh::saveToKeyFrame()
 {
 	// FIXME this is inefficient, maybe should be allocated with new and returned as a reference
 	KeyFrame keyframe = skeleton.getKeyFrame();
-	keyframe.texture.create(320, 240); // FIXME: dimensions?
+	keyframe.texture = new TextureToRender();
+	keyframe.texture->create(960, 720);
+	printf("created %d\n", keyframe.texture->getTexture());
 	keyframes.push_back(keyframe);
 }
 

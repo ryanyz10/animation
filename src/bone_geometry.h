@@ -79,7 +79,7 @@ struct Configuration
 struct KeyFrame
 {
 	std::vector<glm::fquat> rel_rot;
-	TextureToRender texture;
+	TextureToRender *texture;
 
 	static void interpolate(const KeyFrame &from,
 							const KeyFrame &to,
@@ -157,7 +157,7 @@ struct Mesh
 
 	void saveToKeyFrame();
 	int getNumKeyFrames() { return keyframes.size(); }
-	auto &getKeyFrames() { return keyframes; }
+	std::vector<KeyFrame> &getKeyFrames() { return keyframes; }
 
 private:
 	void computeBounds();

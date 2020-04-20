@@ -143,6 +143,23 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
 	{
 		mesh_->saveToKeyFrame();
+
+		// GLint m_viewport[4];
+		// glGetIntegerv(GL_VIEWPORT, m_viewport);
+		// GLint width = m_viewport[2];
+		// GLint height = m_viewport[3];
+
+		// GLint id = mesh_->getKeyFrames()[mesh_->getNumKeyFrames() - 1].texture->getTexture();
+		// glBindTexture(GL_TEXTURE_2D, id);
+
+		// // rgb image
+		// glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_viewport[0],
+		// 				 m_viewport[1], m_viewport[2], m_viewport[3], 0);
+
+		// glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		// char *raw_img = (char *)malloc(sizeof(char) * width * height * 3);
+		// glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, raw_img);
+		// SaveJPEG("output_pic.jpeg", width, height, reinterpret_cast<const unsigned char *>(raw_img));
 	}
 	else if (key == GLFW_KEY_P && action == GLFW_RELEASE)
 	{

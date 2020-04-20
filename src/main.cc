@@ -143,18 +143,18 @@ int main(int argc, char *argv[])
 	std::vector<glm::uvec3> quad_indices;
 
 	// FIXME this is probably dumb
-	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
 
-	quad_indices.push_back(glm::uvec3(0, 1, 3));
-	quad_indices.push_back(glm::uvec3(2, 3, 1));
+	quad_indices.push_back(glm::uvec3(0, 1, 2));
+	quad_indices.push_back(glm::uvec3(2, 3, 0));
 
-	std::vector<glm::vec2> quad_uv;
-	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
-	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
-	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
+	// std::vector<glm::vec2> quad_uv;
+	// quad_uv.push_back(glm::vec2(1.0f, 0.0f));
+	// quad_uv.push_back(glm::vec2(0.0f, 0.0f));
+	// quad_uv.push_back(glm::vec2(0.0f, 1.0f));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 	std::function<std::vector<glm::mat4>()> u_data = [&mesh]() { return mesh.getCurrentQ()->uData(); };
 	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
 
-	std::function<float()> offset_data = [&top_offset]() { return 2.0f - ((float)(2.0f * top_offset) / (float)preview_bar_height); };
+	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
 	std::function<bool()> border_data = []() { return false; };
 	std::function<int()> texture_data = [&texture_id] { return texture_id; };
 
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
 	// Preview render pass
 	RenderDataInput preview_pass_input;
 	preview_pass_input.assign(0, "vertex_position", quad_vertices.data(), quad_vertices.size(), 4, GL_FLOAT);
-	preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
+	// preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
 	preview_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 3);
 	RenderPass preview_pass(-1,
 							preview_pass_input,
@@ -486,14 +486,14 @@ int main(int argc, char *argv[])
 #endif
 		}
 
+		// FIXME this isn't correct
 		// not sure this belongs here - render keyframe to texture
-		if (kf_tex_to_render >= 0)
-		{
-			mesh.getKeyFrames()[kf_tex_to_render].texture.create(320, 240);
-			kf_tex_to_render--;
-		}
+		// if (kf_tex_to_render >= 0)
+		// {
+		// 	mesh.getKeyFrames()[kf_tex_to_render].texture->create(1280, 720);
+		// 	kf_tex_to_render--;
+		// }
 
-		// FIXME: Draw previews here, note you need to call glViewport
 		// render preview sidebar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
 		glDisable(GL_DEPTH_TEST);
@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
 		top_offset = curr_preview_row % 240;
 
 		int num_keyframes = mesh.getNumKeyFrames();
-		auto keyframes = mesh.getKeyFrames();
+		std::vector<KeyFrame> &keyframes = mesh.getKeyFrames();
 		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
 		{
 			if (i >= num_keyframes)
@@ -513,12 +513,13 @@ int main(int argc, char *argv[])
 			}
 
 			preview_pass.setup();
-			TextureToRender curr_texture = keyframes[i].texture;
-			texture_id = curr_texture.getTexture();
+			KeyFrame &keyframe = keyframes[i];
+			texture_id = keyframe.texture->getTexture();
 			CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
+			CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
-			top_offset += 240;
+			top_offset -= 240;
 		}
 
 		// Poll and swap.
