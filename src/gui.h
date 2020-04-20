@@ -49,8 +49,11 @@ public:
 
 	bool isTransparent() const { return transparent_; }
 	bool isPlaying() const { return play_; }
-	float getCurrentPlayTime() const;
+
+	float getCurrentPlayTime() const { return current_play_time; };
 	void incCurrentPlayTime(float secs);
+
+	int getCurrentPreviewRow() const { return current_preview_row; }
 
 private:
 	GLFWwindow *window_;
@@ -75,8 +78,7 @@ private:
 	float aspect_;
 
 	float current_play_time = 0.0f;
-
-	int current_preview_row = 0.0;
+	int current_preview_row = 0;
 
 	glm::vec3 eye_ = glm::vec3(0.0f, 0.1f, camera_distance_);
 	glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);

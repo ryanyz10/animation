@@ -44,8 +44,6 @@ void TextureToRender::create(int width, int height)
 	GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, DrawBuffers);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cerr << "Failed to create framebuffer object as render target" << std::endl;
@@ -55,6 +53,7 @@ void TextureToRender::create(int width, int height)
 		std::cerr << "Framebuffer ready" << std::endl;
 
 		// Render to our framebuffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindFramebuffer(GL_FRAMEBUFFER, fb_);
 		glViewport(0, 0, w_, h_);
 	}

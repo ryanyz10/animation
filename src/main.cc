@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
 		std::cerr << "Usage: " << argv[0] << " <PMD file>" << std::endl;
 		return -1;
 	}
+
 	GLFWwindow *window = init_glefw();
 	GUI gui(window, main_view_width, main_view_height, preview_height);
 
@@ -138,14 +139,25 @@ int main(int argc, char *argv[])
 	create_cylinder_mesh(cylinder_mesh);
 	create_axes_mesh(axes_mesh);
 
-	std::vector<glm::vec4> preview_vertices = {glm::vec4(0, 0, 0, 1),
-											   glm::vec4(0, 0, 0, 1),
-											   glm::vec4(0, 0, 0, 1),
-											   glm::vec4(0, 0, 0, 1)};
-	std::vector<glm::uvec2> preview_tex_coords = {glm::uvec2(0, 0),
-												  glm::uvec2(1, 0),
-												  glm::uvec2(0, 1),
-												  glm::uvec2(1, 1)};
+	std::vector<glm::vec4> quad_vertices;
+	std::vector<glm::uvec4> quad_indices;
+
+	// FIXME this is probably dumb
+	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
+
+	quad_indices.push_back(glm::uvec4(0, 1, 2, 3));
+
+	// quad_indices.push_back(glm::uvec3(0, 1, 2));
+	// quad_indices.push_back(glm::uvec3(0, 2, 3));
+
+	std::vector<glm::vec2> quad_uv;
+	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
+	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
+	quad_uv.push_back(glm::vec2(1.0f, 1.0f));
+	quad_uv.push_back(glm::vec2(0.0f, 1.0f));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -166,6 +178,9 @@ int main(int argc, char *argv[])
 
 	glm::vec4 light_position = glm::vec4(0.0f, 100.0f, 0.0f, 1.0f);
 	MatrixPointers mats; // Define MatrixPointers here for lambda to capture
+
+	int top_offset = 0;
+
 	/*
 	 * In the following we are going to define several lambda functions as
 	 * the data source of GLSL uniforms
@@ -200,6 +215,9 @@ int main(int argc, char *argv[])
 	std::function<std::vector<glm::mat4>()> u_data = [&mesh]() { return mesh.getCurrentQ()->uData(); };
 	std::function<std::vector<glm::mat4>()> d_data = [&mesh]() { return mesh.getCurrentQ()->dData(); };
 
+	std::function<float()> offset_data = [&top_offset]() { return 2.0f - ((float)(2.0f * top_offset) / (float)preview_bar_height); };
+	std::function<bool()> border_data = []() { return false; };
+
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
 	auto std_view = make_uniform("view", view_data);
@@ -211,14 +229,18 @@ int main(int argc, char *argv[])
 	auto u_mats = make_uniform("u_mats", u_data);
 	auto d_mats = make_uniform("d_mats", d_data);
 
-	std::function<float()> alpha_data = [&gui]() {
-		static const float transparet = 0.5; // Alpha constant goes here
-		static const float non_transparet = 1.0;
-		if (gui.isTransparent())
-			return transparet;
-		else
-			return non_transparet;
-	};
+	auto frame_shift = make_uniform("frame_shift", offset_data);
+	auto show_border = make_uniform("show_border", border_data);
+
+	std::function<float()>
+		alpha_data = [&gui]() {
+			static const float transparet = 0.5; // Alpha constant goes here
+			static const float non_transparet = 1.0;
+			if (gui.isTransparent())
+				return transparet;
+			else
+				return non_transparet;
+		};
 	auto object_alpha = make_uniform("alpha", alpha_data);
 
 	std::function<std::vector<glm::vec3>()> trans_data = [&mesh]() { return mesh.getCurrentQ()->transData(); };
@@ -268,12 +290,14 @@ int main(int argc, char *argv[])
 	{
 		bone_vertex_id.emplace_back(i);
 	}
+
 	for (const auto &joint : mesh.skeleton.joints)
 	{
 		if (joint.parent_index < 0)
 			continue;
 		bone_indices.emplace_back(joint.joint_index, joint.parent_index);
 	}
+
 	RenderDataInput bone_pass_input;
 	bone_pass_input.assign(0, "jid", bone_vertex_id.data(), bone_vertex_id.size(), 1, GL_UNSIGNED_INT);
 	bone_pass_input.assignIndex(bone_indices.data(), bone_indices.size(), 2);
@@ -295,7 +319,7 @@ int main(int argc, char *argv[])
 	// Axes render pass
 	RenderDataInput axes_pass_input;
 	axes_pass_input.assign(0, "vertex_position", axes_mesh.vertices.data(), axes_mesh.vertices.size(), 4, GL_FLOAT);
-	axes_pass_input.assignIndex(axes_mesh.indices.data(), axes_mesh.indices.size(), 2);
+	axes_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 4);
 	RenderPass axes_pass(-1,
 						 axes_pass_input,
 						 {axes_vertex_shader, nullptr, axes_fragment_shader},
@@ -304,13 +328,13 @@ int main(int argc, char *argv[])
 
 	// Preview render pass
 	RenderDataInput preview_pass_input;
-	preview_pass_input.assign(0, "vertex_position", axes_mesh.vertices.data(), axes_mesh.vertices.size(), 4, GL_FLOAT);
-	preview_pass_input.assign(1, "tex_coord_in", mesh.joint1.data(), mesh.joint1.size(), 1, GL_INT);
-	preview_pass_input.assignIndex(axes_mesh.indices.data(), axes_mesh.indices.size(), 2);
+	preview_pass_input.assign(0, "vertex_position", quad_vertices.data(), quad_vertices.size(), 4, GL_FLOAT);
+	preview_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
+	preview_pass_input.assignIndex(quad_indices.data(), quad_indices.size(), 4);
 	RenderPass preview_pass(-1,
 							preview_pass_input,
 							{preview_vertex_shader, nullptr, preview_fragment_shader},
-							{/*orthomat, frame_shift*/},
+							{frame_shift, show_border},
 							{"fragment_color"});
 
 	float aspect = 0.0f;
@@ -322,7 +346,7 @@ int main(int argc, char *argv[])
 	bool draw_cylinder = true;
 
 	// if this is >= 0, we will render this keyframe's texture
-	int kf_tex_to_render = -1; 
+	int kf_tex_to_render = -1;
 
 	if (argc >= 3)
 	{
@@ -365,11 +389,11 @@ int main(int argc, char *argv[])
 		if (kf_tex_to_render >= 0)
 		{
 			title << " Rendering keyframe " << kf_tex_to_render;
-			std::cout << " Rendering keyframe " << kf_tex_to_render 
-				<< " to texture" << std::endl;
+			std::cout << " Rendering keyframe " << kf_tex_to_render
+					  << " to texture" << std::endl;
 
 			// at integer time t, should be exactly keyframe t
-			mesh.updateAnimation((float) kf_tex_to_render);
+			mesh.updateAnimation((float)kf_tex_to_render);
 
 			prev = std::chrono::high_resolution_clock::now();
 		}
@@ -470,6 +494,30 @@ int main(int argc, char *argv[])
 		}
 
 		// FIXME: Draw previews here, note you need to call glViewport
+		// render preview sidebar
+		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
+		int curr_preview_row = gui.getCurrentPreviewRow();
+		int first_keyframe_index = curr_preview_row / 240;
+		top_offset = curr_preview_row % 240;
+
+		int num_keyframes = mesh.getNumKeyFrames();
+		auto keyframes = mesh.getKeyFrames();
+		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
+		{
+			if (i >= num_keyframes)
+			{
+				break;
+			}
+
+			preview_pass.setup();
+			TextureToRender curr_texture = keyframes[i].texture;
+			int texture_id = curr_texture.getTexture();
+			CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + texture_id));
+			CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, texture_id));
+			CHECK_GL_ERROR(glDrawElements(GL_PATCHES, quad_indices.size() * 4, GL_UNSIGNED_INT, 0));
+
+			top_offset += 240;
+		}
 
 		// Poll and swap.
 		glfwPollEvents();

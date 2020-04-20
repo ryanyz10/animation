@@ -7,9 +7,6 @@ uniform mat4 model;
 uniform mat4 view;
 in vec4 vertex_position;
 
-// FIXME: Implement your vertex shader for cylinders
-// Note: you need call sin/cos to transform the input mesh to a cylinder
-
 void main() {
 	vec4 cyl_pos = vertex_position;
 	cyl_pos.x = R * cos(2 * kPi * vertex_position.x);

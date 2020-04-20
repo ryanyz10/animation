@@ -359,12 +359,6 @@ bool GUI::setCurrentBone(int i)
 	return true;
 }
 
-float GUI::getCurrentPlayTime() const
-{
-	return current_play_time;
-}
-
-// FIXME maybe doesn't work
 void GUI::incCurrentPlayTime(float secs)
 {
 	current_play_time += secs;
