@@ -148,8 +148,16 @@ int Skeleton::intersectBones(glm::vec4 ray_start, glm::vec4 ray_dir)
 	float bestT = std::numeric_limits<float>::max();
 
 	const int J = joints.size();
-	for (int i = 1; i < J; i++)
+	for (int i = 0; i < J; i++)
 	{
+		// why can't the following exist
+		// if (root_ids.contains(jid)) continue;
+		bool is_root = false;
+		for (int root_id : root_ids)
+			if (i == root_id)
+				is_root = true;
+		if (is_root) continue;
+
 		float t = checkBone(ray_start, ray_dir, i);
 		// ignores collision at t=0.0, way too close
 		if (t > 0.0 && t < bestT)
