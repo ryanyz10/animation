@@ -90,50 +90,53 @@ void Skeleton::initializeJoints()
 	u_mats.resize(J);
 	d_mats.resize(J);
 
-	std::queue<int> q;
-	q.push(0);
-
-	while (!q.empty())
+	for (int root_id : root_ids)
 	{
-		int jid = q.front();
-		q.pop();
-		Joint &current = joints[jid];
+		std::queue<int> q;
+		q.push(root_id);
 
-		// init (rel_)orientation
-		current.rel_orientation = glm::quat(1, 0, 0, 0);
-		current.ti = glm::mat3(1);
-		current.orient = glm::mat3(1);
-		current.orientation = glm::quat(1, 0, 0, 0);
-
-		if (jid == 0)
+		while (!q.empty())
 		{
-			// root case
+			int jid = q.front();
+			q.pop();
+			Joint &current = joints[jid];
 
-			// init U and D
-			glm::mat4 B(1.0);
-			B[3] = glm::vec4(current.init_rel_position, 1.0);
+			// init (rel_)orientation
+			current.rel_orientation = glm::quat(1, 0, 0, 0);
+			current.ti = glm::mat3(1);
+			current.orient = glm::mat3(1);
+			current.orientation = glm::quat(1, 0, 0, 0);
 
-			u_mats[jid] = B;
-			d_mats[jid] = B;
-		}
-		else
-		{
-			// precondition: current's parent has been corrected
+			if (jid == 0)
+			{
+				// root case
 
-			current.init_rel_position = current.init_position - joints[current.parent_index].init_position;
+				// init U and D
+				glm::mat4 B(1.0);
+				B[3] = glm::vec4(current.init_rel_position, 1.0);
 
-			// initialize U and D
-			glm::mat4 B(1.0);
-			B[3] = glm::vec4(current.init_rel_position, 1.0);
+				u_mats[jid] = B;
+				d_mats[jid] = B;
+			}
+			else
+			{
+				// precondition: current's parent has been corrected
 
-			u_mats[jid] = u_mats[current.parent_index] * B;
-			d_mats[jid] = d_mats[current.parent_index] * B /* * current.ti */;
-		}
+				current.init_rel_position = current.init_position - joints[current.parent_index].init_position;
 
-		// add jid's children to queue
-		for (int child : current.children)
-		{
-			q.push(child);
+				// initialize U and D
+				glm::mat4 B(1.0);
+				B[3] = glm::vec4(current.init_rel_position, 1.0);
+
+				u_mats[jid] = u_mats[current.parent_index] * B;
+				d_mats[jid] = d_mats[current.parent_index] * B /* * current.ti */;
+			}
+
+			// add jid's children to queue
+			for (int child : current.children)
+			{
+				q.push(child);
+			}
 		}
 	}
 }
@@ -249,8 +252,16 @@ float Skeleton::checkBone(glm::vec4 ray_start, glm::vec4 ray_dir, int jid)
 	return -1.0f;
 }
 
+void Skeleton::fix()
+{
+	for (int root_id : root_ids)
+	{
+		fixHelper(root_id);
+	}
+}
+
 // precondition: parent D is correct, t_i is correct
-void Skeleton::fixDmatPosOrient(int jid)
+void Skeleton::fixHelper(int jid)
 {
 	Joint &currentJ = joints[jid];
 
@@ -275,9 +286,9 @@ void Skeleton::fixDmatPosOrient(int jid)
 	// fix pos
 	currentJ.position = d_mats[jid] * glm::vec4(0, 0, 0, 1);
 
-	for (const auto &child : currentJ.children)
+	for (int child : currentJ.children)
 	{
-		fixDmatPosOrient(child);
+		fixHelper(child);
 	}
 }
 
@@ -325,8 +336,11 @@ void Mesh::loadPmd(const std::string &fn)
 	int parent;
 	while (mr.getJoint(id, wcoord, parent))
 	{
+		if (parent == -1)
+			skeleton.root_ids.push_back(id);
+
 		// add joint to skeleton
-		skeleton.joints.emplace_back(Joint(id, wcoord, parent));
+		skeleton.joints.emplace_back(id, wcoord, parent);
 
 		id++;
 	}
@@ -345,17 +359,21 @@ void Mesh::loadPmd(const std::string &fn)
 	// put blend weights into vertex attr.
 	std::vector<SparseTuple> weights;
 	mr.getJointWeights(weights);
+	std::cout << "vertices " << V << std::endl;
+	std::cout << "weights " << weights.size() << std::endl;
 
-	for (int i = 0; i < V; i++)
+	for (int i = 0; i < weights.size(); i++)
 	{
 		int vid = weights[i].vid;
-		joint0.push_back(weights[i].jid0);
-		joint1.push_back(weights[i].jid1);
+		const int jid0 = weights[i].jid0;
+		const int jid1 = weights[i].jid1;
+
+		joint0.push_back(jid0);
+		joint1.push_back(jid1);
 		weight_for_joint0.push_back(weights[i].weight0);
 
 		// initialize vector_from_joint#
-		const int jid0 = weights[i].jid0;
-		const int jid1 = weights[i].jid1;
+
 		const glm::vec3 curr_vert = glm::vec3(vertices[vid]);
 		vector_from_joint0.push_back(curr_vert - skeleton.joints[jid0].position);
 		if (jid1 < 0)
@@ -419,8 +437,6 @@ void Mesh::updateAnimation(float t)
 		uint start_t = (int)(std::floor(t));
 		uint end_t = (int)(std::ceil(t));
 
-		// TODO check if we've reached past the last keyframe
-		// if so, short circuit and don't do any calculations
 		if (end_t >= keyframes.size())
 		{
 			return;
@@ -435,7 +451,7 @@ void Mesh::updateAnimation(float t)
 		skeleton.updateFromKeyFrame(target);
 	}
 
-	skeleton.fixDmatPosOrient(0);
+	skeleton.fix();
 	skeleton.refreshCache();
 	skeleton.refreshCache(&currentQ_);
 }

@@ -11,7 +11,7 @@
 - [x] 10. `space` sets model pose to pose in keyframe
 - [x] 11. `ctrl+s` saves keyframe list to `animation.json`
 - [x] 12. Specifying third cli arg reads in animation from `animation.json`
-- [ ] 13. Popup dialog for saving
+- [x] 13. Popup dialog for saving
 - [ ] 14. Keyframe cursor to allow arbitrary insertion
 - [ ] 15. Command to export in a video format
 - [ ] 16. Insert time delays between keyframes

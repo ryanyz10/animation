@@ -537,9 +537,7 @@ int main(int argc, char *argv[])
 		for (current_index = first_keyframe_index; current_index < first_keyframe_index + 4; current_index++)
 		{
 			if (current_index >= num_keyframes)
-			{
 				break;
-			}
 
 			KeyFrame &keyframe = keyframes[current_index];
 			texture_id = keyframe.texture->getTexture();

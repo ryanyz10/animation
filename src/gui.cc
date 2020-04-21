@@ -10,6 +10,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <chrono>
+#include "tinyfiledialogs.h"
 
 namespace
 {
@@ -65,17 +66,12 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	if (key == GLFW_KEY_J && action == GLFW_RELEASE)
 	{
-		//FIXME save out a screenshot using SaveJPEG
 		unsigned char *pixels = new unsigned char[window_width_ * window_height_ * 3];
 		glReadPixels(0, 0, window_width_, window_height_, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
 		// get a unique name
 		const auto p1 = std::chrono::system_clock::now();
-
-		std::string filename = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
-												  p1.time_since_epoch())
-												  .count()) +
-							   ".jpg";
+		std::string filename = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count()) + ".jpg";
 
 		// save jpeg
 		SaveJPEG(filename, window_width_, window_height_, pixels);
@@ -85,7 +81,30 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	if (key == GLFW_KEY_S && (mods & GLFW_MOD_CONTROL))
 	{
 		if (action == GLFW_RELEASE)
-			mesh_->saveAnimationTo("animation.json");
+		{
+			if (mods & GLFW_MOD_SHIFT)
+			{
+				const char *input = tinyfd_inputBox("Enter filename", "Enter filename", "animation");
+
+				if (!input)
+					return;
+
+				std::string filename(input);
+				int length = filename.length();
+
+				if (length < 5 || filename.substr(length - 5) != ".json")
+				{
+					filename += ".json";
+				}
+
+				mesh_->saveAnimationTo(filename);
+			}
+			else
+			{
+				mesh_->saveAnimationTo("animation.json");
+			}
+		}
+
 		return;
 	}
 
@@ -157,18 +176,15 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_U && action == GLFW_RELEASE)
 	{
 		if (selected_keyframe == -1)
-		{
 			return;
-		}
 
 		mesh_->updateKeyFrame(selected_keyframe);
 	}
 	else if (key == GLFW_KEY_DELETE && action == GLFW_RELEASE)
 	{
 		if (selected_keyframe == -1)
-		{
 			return;
-		}
+
 		mesh_->deleteKeyFrame(selected_keyframe);
 	}
 	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
@@ -187,22 +203,16 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 			selected_keyframe = 0;
 
 		if (current_preview_row > 240 * selected_keyframe)
-		{
 			current_preview_row = 240 * selected_keyframe;
-		}
 	}
 	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
 	{
 		selected_keyframe += 1;
 		if (selected_keyframe >= mesh_->getNumKeyFrames())
-		{
 			selected_keyframe -= 1;
-		}
 
 		if (current_preview_row + window_height_ < 240 * (selected_keyframe + 1))
-		{
 			current_preview_row = 240 * (selected_keyframe + 1) - window_height_;
-		}
 	}
 
 	// FIXME: implement other controls here.

@@ -224,6 +224,7 @@ public:
 		constexpr int SKINNING_BDEF4 = mmd::Model::SkinningOperator::SKINNING_BDEF4;
 		constexpr int SKINNING_SDEF = mmd::Model::SkinningOperator::SKINNING_SDEF;
 		size_t nv = model_.GetVertexNum();
+		std::cout << nv << std::endl;
 		tup.clear();
 		tup.reserve(nv * 2);
 		for (size_t i = 0; i < nv; i++)
@@ -239,19 +240,21 @@ public:
 				auto bid = pmd_bone_to_useful_bone_[bdef1.GetBoneID()];
 				if (bid >= 0)
 					tup.emplace_back(i, bid, -1, 1.0f);
+
+				break;
 			}
-			break;
 			case SKINNING_BDEF2:
 			{
 				const auto &bdef2 = v.GetSkinningOperator().GetBDEF2();
+				// std::cerr << bdef2.GetBoneID(0) << "\t" << bdef2.GetBoneID(1) << "\t" << bdef2.GetBoneWeight() << endl;
 				auto bid0 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(0)];
 				auto bid1 = pmd_bone_to_useful_bone_[bdef2.GetBoneID(1)];
 				if (bid0 >= 0 && bid1 >= 0)
 				{
 					tup.emplace_back(i, bid0, bid1, bdef2.GetBoneWeight());
 				}
+				break;
 			}
-			break;
 			case SKINNING_BDEF4:
 			{
 				std::cerr << "We are limited to models that each vertex only binds to at most two bones " << std::endl;
@@ -267,13 +270,11 @@ public:
 						}
 #endif
 			}
-			break;
 			case SKINNING_SDEF:
 				std::cerr << "Unexcepted SkinningOperator " << v.GetSkinningOperator().GetSkinningType() << std::endl;
 				throw - 1;
 				break;
 			}
-			//std::cerr << bdef2.GetBoneID(0) << "\t" << bdef2.GetBoneID(1) << "\t" << bdef2.GetBoneWeight() << endl;
 		}
 	}
 

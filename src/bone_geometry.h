@@ -95,6 +95,8 @@ struct LineMesh
 
 struct Skeleton
 {
+	// a skeleton might have multiple roots
+	std::vector<int> root_ids;
 
 	// bones are identified by their child jid
 	std::vector<Joint> joints;
@@ -118,11 +120,14 @@ struct Skeleton
 	float checkBone(glm::vec4 ray_start, glm::vec4 ray_dir, int jid);
 
 	// update position and D for the given bone and recursively for its children
-	void fixDmatPosOrient(int jid);
+	void fix();
 
 	// save the skeleton to a KeyFrame object
 	KeyFrame getKeyFrame();
 	void updateFromKeyFrame(const KeyFrame &keyframe);
+
+private:
+	void fixHelper(int jid);
 };
 
 struct Mesh
