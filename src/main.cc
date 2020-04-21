@@ -24,12 +24,22 @@
 
 int window_width = 1280;
 int window_height = 720;
+
 int main_view_width = 960;
 int main_view_height = 720;
-int preview_width = window_width - main_view_width; // 320
-int preview_height = preview_width / 4 * 3;			// 320 / 4 * 3 = 240
+
+int scroll_bar_width = 20;
+int scroll_bar_height = 720;
+
+int preview_width = window_width - main_view_width - scroll_bar_width;
+int preview_height = preview_width / 4 * 3;
+
+int padding_width = preview_width;
+int padding_height = (window_height - 3 * preview_height) / 3;
+
 int preview_bar_width = preview_width;
 int preview_bar_height = main_view_height;
+
 const std::string window_title = "Animation";
 
 const char *vertex_shader =
@@ -84,6 +94,14 @@ const char *preview_vertex_shader =
 
 const char *preview_fragment_shader =
 #include "shaders/preview.frag"
+	;
+
+const char *scroll_vertex_shader =
+#include "shaders/scroll.vert"
+	;
+
+const char *scroll_fragment_shader =
+#include "shaders/scroll.frag"
 	;
 
 void ErrorCallback(int error, const char *description)
@@ -142,7 +160,6 @@ int main(int argc, char *argv[])
 	std::vector<glm::vec4> quad_vertices;
 	std::vector<glm::uvec3> quad_indices;
 
-	// FIXME this is probably dumb
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
@@ -156,6 +173,16 @@ int main(int argc, char *argv[])
 	quad_uv.push_back(glm::vec2(1.0f, 1.0f));
 	quad_uv.push_back(glm::vec2(1.0f, 0.0f));
 	quad_uv.push_back(glm::vec2(0.0f, 0.0f));
+
+	std::vector<glm::vec4> scroll_vertices;
+	std::vector<glm::uvec3> scroll_indices;
+	scroll_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
+	scroll_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
+	scroll_vertices.push_back(glm::vec4(1.0f, -1.0f, -1.0f, 1.0f));
+	scroll_vertices.push_back(glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f));
+
+	scroll_indices.push_back(glm::uvec3(0, 1, 2));
+	scroll_indices.push_back(glm::uvec3(2, 3, 0));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -183,6 +210,9 @@ int main(int argc, char *argv[])
 	unsigned texture_id = 0;
 	unsigned sampler_id = 0;
 	bool render_texture = false;
+
+	float scroll_bar_shift = 0.0f;
+	float scroll_bar_scale = 1.0f;
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -223,6 +253,9 @@ int main(int argc, char *argv[])
 	std::function<unsigned()> texture_data = [&texture_id] { return texture_id; };
 	std::function<unsigned()> sampler_data = [&sampler_id] { return sampler_id; };
 
+	std::function<float()> scroll_shift_data = [&scroll_bar_shift] { return scroll_bar_shift; };
+	std::function<float()> scroll_scale_data = [&scroll_bar_scale] { return scroll_bar_scale; };
+
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4 *>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
 	auto std_view = make_uniform("view", view_data);
@@ -237,6 +270,9 @@ int main(int argc, char *argv[])
 	auto frame_shift = make_uniform("frame_shift", offset_data);
 	auto show_border = make_uniform("show_border", border_data);
 	auto sampler = make_texture("sampler", sampler_data, 0, texture_data);
+
+	auto scroll_shift = make_uniform("scroll_shift", scroll_shift_data);
+	auto scroll_scale = make_uniform("scroll_scale", scroll_scale_data);
 
 	std::function<float()>
 		alpha_data = [&gui, &render_texture]() {
@@ -346,6 +382,15 @@ int main(int argc, char *argv[])
 							{frame_shift, show_border, sampler},
 							{"fragment_color"});
 
+	RenderDataInput scroll_pass_input;
+	scroll_pass_input.assign(0, "vertex_position", scroll_vertices.data(), scroll_vertices.size(), 4, GL_FLOAT);
+	scroll_pass_input.assignIndex(scroll_indices.data(), scroll_indices.size(), 3);
+	RenderPass scroll_pass(-1,
+						   scroll_pass_input,
+						   {scroll_vertex_shader, nullptr, scroll_fragment_shader},
+						   {scroll_shift, scroll_scale},
+						   {"fragment_color"});
+
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";
 
@@ -425,17 +470,14 @@ int main(int argc, char *argv[])
 
 		glfwSetWindowTitle(window, title.str().data());
 
-		// FIXME: update the preview textures here
-
 		int current_bone = gui.getCurrentBone();
 
 		// Draw bones first.
 		if (draw_skeleton && gui.isTransparent())
 		{
 			bone_pass.setup();
+
 			// Draw our lines.
-			// FIXME: you need setup skeleton.joints properly in
-			//        order to see the bones.
 			CHECK_GL_ERROR(glDrawElements(GL_LINES,
 										  bone_indices.size() * 2,
 										  GL_UNSIGNED_INT, 0));
@@ -474,16 +516,11 @@ int main(int argc, char *argv[])
 			int mid = 0;
 			while (object_pass.renderWithMaterial(mid))
 				mid++;
-#if 0
-			// For debugging also
-			if (mid == 0) // Fallback
-				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, mesh.faces.size() * 3, GL_UNSIGNED_INT, 0));
-#endif
 		}
 
 		int curr_preview_row = gui.getCurrentPreviewRow();
-		int first_keyframe_index = curr_preview_row / 240;
-		top_offset = curr_preview_row % 240;
+		int first_keyframe_index = curr_preview_row / (preview_height + padding_height);
+		top_offset = curr_preview_row % (preview_height + padding_height);
 		selected_index = gui.getSelectedKeyframe();
 
 		int num_keyframes = mesh.getNumKeyFrames();
@@ -527,15 +564,17 @@ int main(int argc, char *argv[])
 				keyframe.texture = texture;
 			}
 		}
+
 		render_texture = false;
 
-		// render preview sidebar
+		// render preview bar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		for (current_index = first_keyframe_index; current_index < first_keyframe_index + 4; current_index++)
 		{
+			top_offset -= padding_height;
 			if (current_index >= num_keyframes)
 				break;
 
@@ -546,8 +585,17 @@ int main(int argc, char *argv[])
 
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
-			top_offset -= 240;
+			top_offset -= preview_height;
 		}
+
+		// render scroll bar
+		glViewport(main_view_width + preview_bar_width, 0, scroll_bar_width, scroll_bar_height);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		scroll_bar_scale = glm::min(1.0f, (float)(preview_bar_height) / (float)(240 * num_keyframes + padding_height + 600));
+		scroll_bar_shift = 2.0f * (float)(curr_preview_row) / (float)(240 * num_keyframes + padding_height + 600);
+
+		scroll_pass.setup();
+		CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, scroll_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
 		// Poll and swap.
 		glfwPollEvents();

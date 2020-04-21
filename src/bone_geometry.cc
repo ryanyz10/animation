@@ -156,7 +156,8 @@ int Skeleton::intersectBones(glm::vec4 ray_start, glm::vec4 ray_dir)
 		for (int root_id : root_ids)
 			if (i == root_id)
 				is_root = true;
-		if (is_root) continue;
+		if (is_root)
+			continue;
 
 		float t = checkBone(ray_start, ray_dir, i);
 		// ignores collision at t=0.0, way too close
@@ -367,8 +368,6 @@ void Mesh::loadPmd(const std::string &fn)
 	// put blend weights into vertex attr.
 	std::vector<SparseTuple> weights;
 	mr.getJointWeights(weights);
-	std::cout << "vertices " << V << std::endl;
-	std::cout << "weights " << weights.size() << std::endl;
 
 	for (int i = 0; i < weights.size(); i++)
 	{

@@ -224,7 +224,6 @@ public:
 		constexpr int SKINNING_BDEF4 = mmd::Model::SkinningOperator::SKINNING_BDEF4;
 		constexpr int SKINNING_SDEF = mmd::Model::SkinningOperator::SKINNING_SDEF;
 		size_t nv = model_.GetVertexNum();
-		std::cout << nv << std::endl;
 		tup.clear();
 		tup.reserve(nv * 2);
 		for (size_t i = 0; i < nv; i++)
