@@ -31,12 +31,15 @@ int main_view_height = 720;
 int scroll_bar_width = 20;
 int scroll_bar_height = 720;
 
+// 300 x 225
 int preview_width = window_width - main_view_width - scroll_bar_width;
 int preview_height = preview_width / 4 * 3;
 
+// 300 x 15
 int padding_width = preview_width;
 int padding_height = (window_height - 3 * preview_height) / 3;
 
+// 300 x 720
 int preview_bar_width = preview_width;
 int preview_bar_height = main_view_height;
 
@@ -162,8 +165,8 @@ int main(int argc, char *argv[])
 
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f / 3.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 255.0f / 720.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(-1.0f, 255.0f / 720.0f, -1.0f, 1.0f));
 
 	quad_indices.push_back(glm::uvec3(0, 1, 2));
 	quad_indices.push_back(glm::uvec3(2, 3, 0));
@@ -209,6 +212,9 @@ int main(int argc, char *argv[])
 	int selected_index = 0;
 	unsigned texture_id = 0;
 	unsigned sampler_id = 0;
+
+	bool is_padding = false;
+
 	bool render_texture = false;
 
 	float scroll_bar_shift = 0.0f;
@@ -250,6 +256,7 @@ int main(int argc, char *argv[])
 
 	std::function<float()> offset_data = [&top_offset]() { return ((float)(2.0f * top_offset) / (float)preview_bar_height); };
 	std::function<bool()> border_data = [&current_index, &selected_index]() { return current_index == selected_index; };
+	std::function<bool()> padding_data = [&is_padding] { return is_padding; };
 	std::function<unsigned()> texture_data = [&texture_id] { return texture_id; };
 	std::function<unsigned()> sampler_data = [&sampler_id] { return sampler_id; };
 
@@ -269,6 +276,7 @@ int main(int argc, char *argv[])
 
 	auto frame_shift = make_uniform("frame_shift", offset_data);
 	auto show_border = make_uniform("show_border", border_data);
+	auto padding = make_uniform("padding", padding_data);
 	auto sampler = make_texture("sampler", sampler_data, 0, texture_data);
 
 	auto scroll_shift = make_uniform("scroll_shift", scroll_shift_data);
@@ -379,11 +387,12 @@ int main(int argc, char *argv[])
 	RenderPass preview_pass(-1,
 							preview_pass_input,
 							{preview_vertex_shader, nullptr, preview_fragment_shader},
-							{frame_shift, show_border, sampler},
+							{frame_shift, show_border, sampler, padding},
 							{"fragment_color"});
 
 	RenderDataInput scroll_pass_input;
 	scroll_pass_input.assign(0, "vertex_position", scroll_vertices.data(), scroll_vertices.size(), 4, GL_FLOAT);
+	scroll_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
 	scroll_pass_input.assignIndex(scroll_indices.data(), scroll_indices.size(), 3);
 	RenderPass scroll_pass(-1,
 						   scroll_pass_input,
@@ -569,23 +578,34 @@ int main(int argc, char *argv[])
 
 		// render preview bar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
-		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		for (current_index = first_keyframe_index; current_index < first_keyframe_index + 4; current_index++)
+		for (current_index = 2 * first_keyframe_index; current_index < 2 * (first_keyframe_index + 4); current_index++)
 		{
-			top_offset -= padding_height;
-			if (current_index >= num_keyframes)
-				break;
+			if (current_index & 1)
+			{
+				is_padding = false;
+				if (current_index / 2 >= num_keyframes)
+					break;
 
-			KeyFrame &keyframe = keyframes[current_index];
-			texture_id = keyframe.texture->getTexture();
+				KeyFrame &keyframe = keyframes[current_index / 2];
+				texture_id = keyframe.texture->getTexture();
 
-			preview_pass.setup();
+				preview_pass.setup();
 
-			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
+				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
-			top_offset -= preview_height;
+				top_offset -= preview_height;
+			}
+			else
+			{
+				is_padding = true;
+
+				preview_pass.setup();
+				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
+
+				top_offset -= padding_height;
+			}
 		}
 
 		// render scroll bar

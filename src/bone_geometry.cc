@@ -412,6 +412,13 @@ void Mesh::saveToKeyFrame()
 	keyframes.push_back(keyframe);
 }
 
+void Mesh::insertKeyFrame(int index)
+{
+	KeyFrame keyframe = skeleton.getKeyFrame();
+	keyframe.texture = nullptr;
+	keyframes.insert(keyframes.begin() + index, keyframe);
+}
+
 void Mesh::updateKeyFrame(int index)
 {
 	delete keyframes[index].texture;

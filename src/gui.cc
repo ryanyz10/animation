@@ -161,7 +161,10 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
 	{
-		mesh_->saveToKeyFrame();
+		if (selected_keyframe & 1)
+			mesh_->saveToKeyFrame();
+		else
+			mesh_->insertKeyFrame(selected_keyframe / 2);
 	}
 	else if (key == GLFW_KEY_P && action == GLFW_RELEASE)
 	{
@@ -182,23 +185,22 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_DELETE && action == GLFW_RELEASE)
 	{
-		if (selected_keyframe == -1)
+		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
-		mesh_->deleteKeyFrame(selected_keyframe);
+		mesh_->deleteKeyFrame(selected_keyframe >> 1);
 	}
 	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
 	{
-		if (selected_keyframe == -1)
+		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
 		// TODO should we pause?
-		current_play_time = (float)selected_keyframe;
-		mesh_->updateAnimation(current_play_time);
+		mesh_->updateAnimation(selected_keyframe >> 1);
 	}
 	else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE)
 	{
-		selected_keyframe--;
+		selected_keyframe -= 1;
 		if (selected_keyframe < 0)
 			selected_keyframe = 0;
 
@@ -208,7 +210,7 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
 	{
 		selected_keyframe += 1;
-		if (selected_keyframe >= mesh_->getNumKeyFrames())
+		if (selected_keyframe >= 2 * (mesh_->getNumKeyFrames() + 1))
 			selected_keyframe -= 1;
 
 		if (current_preview_row + window_height_ < 240 * (selected_keyframe + 1))
@@ -365,30 +367,44 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 	}
 
 	if (action != GLFW_RELEASE)
-	{
 		return;
-	}
 
 	int first_index = current_preview_row / 240;
 	int top_offset = current_preview_row % 240;
 
-	//                  ____
-	//    _____________ __|__ top_offset
+	//                  ______         ___
+	//                  __|___ buffer   |
+	//    _____________   |            _|_ top_offset
+	//   |            |   |    frame
 	//   |            |   |
-	//   |            |   |    current_y
-	//   |            | __|__
+	//   |            | __|_
 	//   |            |
 
 	int test_keyframe = first_index + (((window_height_ - current_y_) + top_offset) / 240);
+	bool in_buffer = ((int)((window_height_ - current_y_) + top_offset) % 240) <= 15;
 
-	if (test_keyframe >= mesh_->getNumKeyFrames())
-	{
+	test_keyframe = 2 * test_keyframe + (in_buffer ? 0 : 1);
+
+	if (test_keyframe >= 2 * (mesh_->getNumKeyFrames() + 1))
 		return;
-	}
 
 	if (test_keyframe == selected_keyframe)
 	{
-		selected_keyframe = -1;
+		if (selected_keyframe & 1)
+		{
+			// selected keyframe is a preview frame
+			if (in_buffer)
+				selected_keyframe = test_keyframe * 2;
+			else
+				selected_keyframe = -1;
+		}
+		else
+		{
+			if (in_buffer)
+				selected_keyframe = -1;
+			else
+				selected_keyframe = test_keyframe * 2 + 1;
+		}
 	}
 	else
 	{
@@ -399,6 +415,9 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 void GUI::mouseScrollCallback(double dx, double dy)
 {
 	if (current_x_ < view_width_)
+		return;
+
+	if (mesh_->getNumKeyFrames() == 0)
 		return;
 
 	current_preview_row -= (int)(50 * dy);

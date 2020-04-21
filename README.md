@@ -12,10 +12,13 @@
 - [x] 11. `ctrl+s` saves keyframe list to `animation.json`
 - [x] 12. Specifying third cli arg reads in animation from `animation.json`
 - [x] 13. Popup dialog for saving
-- [ ] 14. Keyframe cursor to allow arbitrary insertion
-- [ ] 15. Command to export in a video format
-- [ ] 16. Insert time delays between keyframes
-- [ ] 17. Red line advances while playing
+- [x] 14. Keyframe cursor to allow arbitrary insertion
+- [x] 15. Scrollbar for preview scrolling
+- [ ] 16. Anti-aliased previews
+- [ ] 17. Anti-aliased main window
+- [ ] 18. Command to export in a video format
+- [ ] 19. Insert time delays between keyframes
+- [ ] 20. Red line advances while playing
 
 ## Point Values
 * 1-3: 30pts
@@ -25,7 +28,11 @@
 * 13: 5pts
 * 14: 5pts
 * 15: 10pts
-* 16: 15pts
+* 16: 10pts
+* 17: 10pts
+* 18: 10pts
+* 19: 15pts
+* 20: ?
 
 # Building
 First run
