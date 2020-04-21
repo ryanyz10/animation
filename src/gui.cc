@@ -354,14 +354,12 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 		return;
 	}
 
-	// FIXME: Key Frame Selection
 	if (action != GLFW_RELEASE)
 	{
 		return;
 	}
 
 	int first_index = current_preview_row / 240;
-	// top_offset is how much of the first_index kf is NOT visible
 	int top_offset = current_preview_row % 240;
 
 	//                  ____
@@ -372,6 +370,11 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 	//   |            |
 
 	int test_keyframe = first_index + (((window_height_ - current_y_) + top_offset) / 240);
+
+	if (test_keyframe >= mesh_->getNumKeyFrames())
+	{
+		return;
+	}
 
 	if (test_keyframe == selected_keyframe)
 	{

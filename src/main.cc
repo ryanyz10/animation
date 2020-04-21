@@ -182,6 +182,7 @@ int main(int argc, char *argv[])
 	int selected_index = 0;
 	unsigned texture_id = 0;
 	unsigned sampler_id = 0;
+	bool render_texture = false;
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -238,9 +239,12 @@ int main(int argc, char *argv[])
 	auto sampler = make_texture("sampler", sampler_data, 0, texture_data);
 
 	std::function<float()>
-		alpha_data = [&gui]() {
+		alpha_data = [&gui, &render_texture]() {
 			static const float transparent = 0.5; // Alpha constant goes here
 			static const float non_transparent = 1.0;
+			if (render_texture)
+				return non_transparent;
+
 			if (gui.isTransparent())
 				return transparent;
 			else
@@ -486,6 +490,7 @@ int main(int argc, char *argv[])
 		std::vector<KeyFrame> &keyframes = mesh.getKeyFrames();
 
 		// make sure the texture exist
+		render_texture = true;
 		for (int i = first_keyframe_index; i < first_keyframe_index + 4; i++)
 		{
 			if (i >= num_keyframes)
@@ -522,6 +527,7 @@ int main(int argc, char *argv[])
 				keyframe.texture = texture;
 			}
 		}
+		render_texture = false;
 
 		// render preview sidebar
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
