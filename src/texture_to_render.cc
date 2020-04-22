@@ -29,8 +29,6 @@ void TextureToRender::create(int width, int height, bool multisample, int sample
 
 	glGenTextures(1, &tex_);
 
-	std::cout << "created texture " << tex_ << std::endl;
-
 	if (multisample)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex_);

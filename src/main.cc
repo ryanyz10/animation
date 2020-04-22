@@ -121,8 +121,7 @@ GLFWwindow *init_glefw()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); // Disable resizing, for simplicity
-	// glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	auto ret = glfwCreateWindow(window_width, window_height, window_title.data(), nullptr, nullptr);
 	CHECK_SUCCESS(ret != nullptr);
 	glfwMakeContextCurrent(ret);
@@ -222,27 +221,6 @@ int main(int argc, char *argv[])
 
 	int max_samples;
 	glGetIntegerv(GL_MAX_SAMPLES, &max_samples);
-
-	/*
-	 * In the following we are going to define several lambda functions as
-	 * the data source of GLSL uniforms
-	 *
-	 * Introduction about lambda functions:
-	 *      http://en.cppreference.com/w/cpp/language/lambda
-	 *      http://www.stroustrup.com/C++11FAQ.html#lambda
-	 *
-	 * Note: lambda expressions cannot be converted to std::function directly
-	 *       Hence we need to declare the data function explicitly.
-	 *
-	 * CAVEAT: DO NOT RETURN const T&, which compiles but causes
-	 *         segfaults.
-	 *
-	 * Do not worry about the efficient issue, copy elision in C++ 17 will
-	 * minimize the performance impact.
-	 *
-	 * More details about copy elision:
-	 *      https://en.cppreference.com/w/cpp/language/copy_elision
-	 */
 
 	std::function<const glm::mat4 *()> model_data = [&mats]() {
 		return mats.model;
@@ -440,7 +418,6 @@ int main(int argc, char *argv[])
 		glViewport(0, 0, main_view_width, main_view_height);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glEnable(GL_DEPTH_TEST);
-		// glEnable(GL_MULTISAMPLE);
 		glEnable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -453,7 +430,6 @@ int main(int argc, char *argv[])
 		glViewport(0, 0, main_view_width, main_view_height);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glEnable(GL_DEPTH_TEST);
-		// glEnable(GL_MULTISAMPLE);
 		glEnable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -637,6 +613,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				is_padding = true;
+				texture_id = 0;
 
 				preview_pass.setup();
 				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
