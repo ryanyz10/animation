@@ -233,7 +233,7 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
 	{
 		selected_keyframe += 1;
-		if (selected_keyframe >= 2 * (mesh_->getNumKeyFrames() + 1))
+		if (selected_keyframe >= 2 * mesh_->getNumKeyFrames())
 			selected_keyframe -= 1;
 
 		// TODO fix this
