@@ -84,7 +84,7 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		{
 			if (mods & GLFW_MOD_SHIFT)
 			{
-				const char *input = tinyfd_inputBox("Enter filename", "Enter filename", "animation");
+				const char *input = tinyfd_inputBox("Enter filename", "Filename to save to:", "animation");
 
 				if (!input)
 					return;
@@ -157,7 +157,29 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_T && action != GLFW_RELEASE)
 	{
-		transparent_ = !transparent_;
+		if (mods & GLFW_MOD_SHIFT && (selected_keyframe & 1) == 0)
+		{
+			// add time delay
+			const char *input = tinyfd_inputBox("Enter duration", "Duration of delay:", "0");
+
+			if (!input)
+				return;
+
+			std::string time_str(input);
+			try
+			{
+				int time = std::stoi(time_str);
+			}
+			catch (const std::exception &e)
+			{
+				std::cerr << e.what() << std::endl;
+				return;
+			}
+		}
+		else
+		{
+			transparent_ = !transparent_;
+		}
 	}
 	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
 	{
@@ -178,10 +200,10 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_U && action == GLFW_RELEASE)
 	{
-		if (selected_keyframe == -1)
+		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
-		mesh_->updateKeyFrame(selected_keyframe);
+		mesh_->updateKeyFrame(selected_keyframe >> 1);
 	}
 	else if (key == GLFW_KEY_DELETE && action == GLFW_RELEASE)
 	{
@@ -204,8 +226,9 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		if (selected_keyframe < 0)
 			selected_keyframe = 0;
 
-		if (current_preview_row > 240 * selected_keyframe)
-			current_preview_row = 240 * selected_keyframe;
+		// TODO fix this
+		// if (current_preview_row > 240 * selected_keyframe)
+		// 	current_preview_row = 240 * selected_keyframe;
 	}
 	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
 	{
@@ -213,8 +236,9 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		if (selected_keyframe >= 2 * (mesh_->getNumKeyFrames() + 1))
 			selected_keyframe -= 1;
 
-		if (current_preview_row + window_height_ < 240 * (selected_keyframe + 1))
-			current_preview_row = 240 * (selected_keyframe + 1) - window_height_;
+		// TODO fix this
+		// if (current_preview_row + window_height_ < 240 * (selected_keyframe + 1))
+		// 	current_preview_row = 240 * (selected_keyframe + 1) - window_height_;
 	}
 
 	// FIXME: implement other controls here.
@@ -287,14 +311,6 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	////// make a ray going towards mouse //////
 	glm::vec4 ray_start(eye_, 1.0); // in wcoords
 
-	// manual attempt
-	// float x_ndc = (current_x_ - (view_width_ / 2)) * 2 / view_width_;
-	// float y_ndc = (current_y_ - (view_height_ / 2)) * 2 / view_height_;
-	// glm::vec4 near_plane_isect(x_ndc, y_ndc, -1, 1);	// in NDC
-	// near_plane_isect = near_plane_isect * kNear;		// undo automatic w-normalization
-	// glm::vec4 ray_end = glm::inverse(projection_matrix_) * near_plane_isect;
-	// ray_end /= ray_end.w;
-
 	// let's try unProject ==> https://stackoverflow.com/questions/9901453/using-glms-unproject
 	glm::vec3 win(current_x_, current_y_, kNear);
 	glm::vec4 ray_end(glm::unProject(win,
@@ -307,15 +323,8 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	////// perform ray-cylinder intersection detection ////
 	glm::vec4 ray_dir = glm::normalize(ray_end - ray_start);
 
-	// DEBUG
-	// printf("look: %f %f %f\n", look_.x, look_.y, look_.z);
-	// printf("rayd: %f %f %f %f\n", ray_dir.x, ray_dir.y, ray_dir.z, ray_dir.w);
-
 	// sets to -1 if no intersection
 	current_bone_ = mesh_->skeleton.intersectBones(ray_start, ray_dir);
-
-	// DEBUG
-	// std::cout << current_bone_ << std::endl;
 
 	if (current_bone_ == -1)
 		return;
@@ -385,7 +394,7 @@ void GUI::mouseButtonCallback(int button, int action, int mods)
 
 	test_keyframe = 2 * test_keyframe + (in_buffer ? 0 : 1);
 
-	if (test_keyframe >= 2 * (mesh_->getNumKeyFrames() + 1))
+	if (test_keyframe > 2 * mesh_->getNumKeyFrames())
 		return;
 
 	if (test_keyframe == selected_keyframe)

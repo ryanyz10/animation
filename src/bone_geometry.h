@@ -167,12 +167,16 @@ struct Mesh
 	int getNumKeyFrames() { return keyframes.size(); }
 	std::vector<KeyFrame> &getKeyFrames() { return keyframes; }
 
+	void addDelay(int delay_num, int duration);
+	std::map<int, int> &getDelays() { return delays; }
+
 private:
 	void computeBounds();
 	void computeNormals();
 	Configuration currentQ_;
 
 	std::vector<KeyFrame> keyframes;
+	std::map<int, int> delays;
 };
 
 #endif

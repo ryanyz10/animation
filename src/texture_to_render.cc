@@ -11,6 +11,7 @@ TextureToRender::~TextureToRender()
 {
 	if (fb_ < 0)
 		return;
+
 	unbind();
 	glDeleteFramebuffers(1, &fb_);
 	glDeleteTextures(1, &tex_);
@@ -27,6 +28,8 @@ void TextureToRender::create(int width, int height, bool multisample, int sample
 	bind();
 
 	glGenTextures(1, &tex_);
+
+	std::cout << "created texture " << tex_ << std::endl;
 
 	if (multisample)
 	{

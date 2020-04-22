@@ -14,8 +14,8 @@
 - [x] 13. Popup dialog for saving
 - [x] 14. Keyframe cursor to allow arbitrary insertion
 - [x] 15. Scrollbar for preview scrolling
-- [ ] 16. Anti-aliased previews
-- [ ] 17. Anti-aliased main window
+- [x] 16. Anti-aliased previews
+- [x] 17. Anti-aliased main window
 - [ ] 18. Command to export in a video format
 - [ ] 19. Insert time delays between keyframes
 - [ ] 20. Red line advances while playing
