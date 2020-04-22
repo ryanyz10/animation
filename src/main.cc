@@ -122,7 +122,7 @@ GLFWwindow *init_glefw()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); // Disable resizing, for simplicity
-	glfwWindowHint(GLFW_SAMPLES, 4);
+	// glfwWindowHint(GLFW_SAMPLES, 4);
 	auto ret = glfwCreateWindow(window_width, window_height, window_title.data(), nullptr, nullptr);
 	CHECK_SUCCESS(ret != nullptr);
 	glfwMakeContextCurrent(ret);
@@ -219,6 +219,9 @@ int main(int argc, char *argv[])
 
 	float scroll_bar_shift = 0.0f;
 	float scroll_bar_scale = 1.0f;
+
+	int max_samples;
+	glGetIntegerv(GL_MAX_SAMPLES, &max_samples);
 
 	/*
 	 * In the following we are going to define several lambda functions as
@@ -422,16 +425,23 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	TextureToRender main_multisample;
+	main_multisample.create(main_view_width, main_view_height, true, max_samples);
+	main_multisample.unbind();
+
+	GLenum error;
+
 	auto prev = std::chrono::high_resolution_clock::now();
 
 	while (!glfwWindowShouldClose(window))
 	{
 		// Setup some basic window stuff.
+		main_multisample.bind();
 		glfwGetFramebufferSize(window, &window_width, &window_height);
 		glViewport(0, 0, main_view_width, main_view_height);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_MULTISAMPLE);
+		// glEnable(GL_MULTISAMPLE);
 		glEnable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -527,6 +537,13 @@ int main(int argc, char *argv[])
 				mid++;
 		}
 
+		main_multisample.unbind();
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, main_multisample.getFrameBuffer());
+		glDrawBuffer(GL_BACK);
+		glBlitFramebuffer(0, 0, main_view_width, main_view_height, 0, 0, main_view_width, main_view_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 		int curr_preview_row = gui.getCurrentPreviewRow();
 		int first_keyframe_index = curr_preview_row / (preview_height + padding_height);
 		top_offset = curr_preview_row % (preview_height + padding_height);
@@ -547,8 +564,8 @@ int main(int argc, char *argv[])
 			KeyFrame &keyframe = keyframes[i];
 			if (keyframe.texture == nullptr)
 			{
-				TextureToRender *texture = new TextureToRender();
-				texture->create(960, 720);
+				TextureToRender multisampled;
+				multisampled.create(main_view_width, main_view_height, true, max_samples);
 
 				mesh.updateAnimation(i);
 
@@ -568,7 +585,15 @@ int main(int argc, char *argv[])
 						mid++;
 				}
 
-				texture->unbind();
+				multisampled.unbind();
+
+				TextureToRender *texture = new TextureToRender();
+				texture->create(main_view_width, main_view_height);
+
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, multisampled.getFrameBuffer());
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, texture->getFrameBuffer());
+				glBlitFramebuffer(0, 0, main_view_width, main_view_height, 0, 0, main_view_width, main_view_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 				keyframe.texture = texture;
 			}
@@ -580,6 +605,7 @@ int main(int argc, char *argv[])
 		glViewport(main_view_width, 0, preview_bar_width, preview_bar_height);
 		glDisable(GL_CULL_FACE);
 		glClear(GL_DEPTH_BUFFER_BIT);
+
 		for (current_index = 2 * first_keyframe_index; current_index < 2 * (first_keyframe_index + 4); current_index++)
 		{
 			if (current_index & 1)
@@ -592,7 +618,6 @@ int main(int argc, char *argv[])
 				texture_id = keyframe.texture->getTexture();
 
 				preview_pass.setup();
-
 				CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES, quad_indices.size() * 3, GL_UNSIGNED_INT, 0));
 
 				top_offset -= preview_height;
