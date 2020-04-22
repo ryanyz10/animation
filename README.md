@@ -43,3 +43,43 @@ Then generate the cmake files and `compile_commands.json` for the vscode cpp plu
 
 Finally, build
 `make -j8`
+
+# Write-up
+
+## Keyframe structure
+We created a vector of `Keyframe`s in the `Mesh` struct. Each keyframe contained a vector containing every joint's relative rotation for the frame. It also contained a pointer to a `TextureToRender` object. More on rendering to texture below.
+
+### Saving to / loading from JSON
+We simply deconstructed all the quaternions into 4-length arrays and saved the keyframes as JSON object. Loading the file was simply the reverse, and setting the `TextureToRender` pointer to `nullptr` (for reasons we'll discuss below).
+
+## Animation
+To animate our model, we kept track of the time of the animation and interpolated the frames corresponding to the two nearest integers. (For example, at time 1.5 seconds we would interpolate keyframes 1 and 2 equally.) We'd then update the skeleton's data with the new relative rotations. `R` to rewind simply paused animation and set time to 0.0 seconds. 
+
+## Preview panel
+
+### Rendering to / from textures
+TODO
+
+### Keyframe management
+The keyframe management functionality (`F` to add, `Delete` to delete, `U` to update) was simply adding, removing, and modifying the vector of keyframes. `Space` was just updating the skeleton's `T_i` matrices. To detect mouse clicks on certain keyframes, we kept track of how far down we had scrolled, then did some math to figure out the keyframe that was being clicked. This index would be stored, and `PgUp` and `PgDn` decrements/increments this value with bounds checking.
+
+Scrolling over the preview area would change a height value (with bounds checking) that controls what portions of which 3 or 4 keyframes are displayed.
+
+## Extra Credit
+
+### Ctrl+Shift+S to save to custom filename
+We used an external library [tinyfiledialogs](http://tinyfiledialogs.sourceforge.net/) to create a pop-up window with prompt. We performed some sanitation, then saved the JSON as usual.
+
+### Cursor
+TODO
+
+### Scroll bar
+TODO
+
+### Anti-aliased previews
+TODO
+
+### Anti-aliased main view
+TODO
+
+### TBD
