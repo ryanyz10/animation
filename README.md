@@ -58,7 +58,11 @@ To animate our model, we kept track of the time of the animation and interpolate
 ## Preview panel
 
 ### Rendering to / from textures
-TODO
+When we hit `F`, the current skeleton is saved to a keyframe. Each `KeyFrame` object has an associated `TextureToRender *texture`, which is initialized to `nullptr`. Due to the limited and static size of the preview window, we know we will be drawing at most 4 keyframe previews. We thus employ a kind of lazy-loading to the textures: we figure out which 4 keyframes will be drawn on the screen and check each ones `texture`. If `texture` is `nullptr`, then the texture has never been rendered. We call `TextureToRender::create` to initialize the new texture's framebuffer, depth buffer and texture. Then we draw the floor and mesh to this texture and save it to the keyframe's texture. This method ensures that we don't do too much work in one render loop, while also making sure we don't do any excess work of rendering the same preview repeatedly.
+
+To display the preview, we draw the quad (with vertices set to the correct dimensions in NDC). We apply a shift depending on where the preview is in the list and then texture it with the above generated texture.
+
+We used a pointer to prevent the textures from being de-allocated. Initially, we were copying `TextureToRender` objects into the keyframes. The old `TextureToRender` would then go out of scope and be destructed. This would delete the texture, which was a global name, so attempting to bind would cause GL errors. 
 
 ### Keyframe management
 The keyframe management functionality (`F` to add, `Delete` to delete, `U` to update) was simply adding, removing, and modifying the vector of keyframes. `Space` was just updating the skeleton's `T_i` matrices. To detect mouse clicks on certain keyframes, we kept track of how far down we had scrolled, then did some math to figure out the keyframe that was being clicked. This index would be stored, and `PgUp` and `PgDn` decrements/increments this value with bounds checking.
@@ -71,16 +75,20 @@ Scrolling over the preview area would change a height value (with bounds checkin
 We used an external library [tinyfiledialogs](http://tinyfiledialogs.sourceforge.net/) to create a pop-up window with prompt. We performed some sanitation, then saved the JSON as usual.
 
 ### Cursor
-TODO
+A bright green cursor appears when you click in between frames. We inserted a 'buffer' between every keyframe as well as before the first and after the last keyframe. We changed the meaning of `selected_keyframe` to mean the index of the selected object -- buffers had even indices and keyframes had odd indices. We modified our math to handle mouse clicks, and `PgUp` and `PgDn` now alternate between buffer and keyframe. Additionally, we changed the behavior of `F` to insert at the selected point whenever a buffer was selected. 
 
 ### Scroll bar
-TODO
+We created a scroll bar on the right side of the preview panel, and its size and position is dependent on how many keyframes there are as well as how far down we've scrolled (both are values we track). We performed some math to transform the quad to the desired position, and the shaders were quite simple.
 
 ### Anti-aliased previews
-TODO
+This is an extension of the rendering to/from textures described above. We extended the `TextureToRender::create` method to take a `bool multisample` and `int num_samples`. If `multisample` is set to `true`, we simply call different Gl commands to create a 2D multisample texture instead of a regular multisample texture.
+
+In the render loop, we first create a `TextureToRender multisample_texture` on the stack and render the floor/mesh to it. Then we allocate a new `TextureToRender* texture`, blit the `multisample_texture` onto `texture` and then set the `texture` pointer of the current keyframe. Texturing the preview quads is the same as before
 
 ### Anti-aliased main view
-TODO
+This is a similar process to anti-aliased previews. We create a `TextureToRender main_multisample` that multisamples the main scene. We then blit from `main_multisample` onto the default framebuffer to render the scene. We ran into an issue where previous frames remained on-screen -- this was because we weren't clearing both the default framebuffer and `main_multisample` framebuffer. Clearing both fixed this issue for us.
+
+A note about both anti-aliasing, the effect seems to be very slight, at least on my machine where `MAX_SAMPLES` is 8 (not sure why). Maybe with more samples it'll look better, but my guess is that we need to implement a more complex anti-aliasing method as well.
 
 ### Save to video
 Install the `ffmpeg` libary with `sudo apt-get install ffmpeg`
