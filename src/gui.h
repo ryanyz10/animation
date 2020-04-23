@@ -5,6 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 
+#include <stdio.h>
+
 struct Mesh;
 
 /*
@@ -56,6 +58,9 @@ public:
 	int getCurrentPreviewRow() const { return current_preview_row; }
 	int getSelectedKeyframe() const { return selected_keyframe; }
 
+	const bool getMakeVid() { return make_vid; }
+	void setMakeVid(bool mv){ make_vid = mv; }
+
 private:
 	GLFWwindow *window_;
 	Mesh *mesh_;
@@ -99,6 +104,8 @@ private:
 	bool captureWASDUPDOWN(int key, int action);
 
 	bool play_ = false;
+
+	bool make_vid = false;
 };
 
 #endif

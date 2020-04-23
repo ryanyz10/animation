@@ -61,11 +61,15 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 #endif
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 	{
+		if (make_vid) return;
+
 		glfwSetWindowShouldClose(window_, GL_TRUE);
 		return;
 	}
 	if (key == GLFW_KEY_J && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		unsigned char *pixels = new unsigned char[window_width_ * window_height_ * 3];
 		glReadPixels(0, 0, window_width_, window_height_, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
@@ -80,6 +84,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	if (key == GLFW_KEY_S && (mods & GLFW_MOD_CONTROL))
 	{
+		if (make_vid) return;
+		
 		if (action == GLFW_RELEASE)
 		{
 			if (mods & GLFW_MOD_SHIFT)
@@ -108,10 +114,25 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		return;
 	}
 
+	if (key == GLFW_KEY_V && (mods & GLFW_MOD_CONTROL))
+	{
+		if (make_vid) return;
+		
+		if (action == GLFW_RELEASE)
+		{
+			make_vid = true;
+			
+			play_ = true;
+			current_play_time = 0.0f;
+		}
+	}
+
 	if (mods == 0 && captureWASDUPDOWN(key, action))
 		return;
 	if (key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT)
 	{
+		if (make_vid) return;
+		
 		if (current_bone_ == -1)
 			return;
 
@@ -139,10 +160,14 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_C && action != GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		fps_mode_ = !fps_mode_;
 	}
 	else if (key == GLFW_KEY_LEFT_BRACKET && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		current_bone_--;
 		current_bone_ += mesh_->getNumberOfBones();
 		current_bone_ %= mesh_->getNumberOfBones();
@@ -150,6 +175,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_RIGHT_BRACKET && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		current_bone_++;
 		current_bone_ += mesh_->getNumberOfBones();
 		current_bone_ %= mesh_->getNumberOfBones();
@@ -157,6 +184,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_T && action != GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		if (mods & GLFW_MOD_SHIFT && (selected_keyframe & 1) == 0)
 		{
 			// add time delay
@@ -183,6 +212,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_F && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		if (selected_keyframe & 1)
 			mesh_->saveToKeyFrame();
 		else
@@ -190,16 +221,22 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_P && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		play_ = !play_;
 	}
 	else if (key == GLFW_KEY_R && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		play_ = false;
 		current_play_time = 0.0f;
 		mesh_->updateAnimation(current_play_time);
 	}
 	else if (key == GLFW_KEY_U && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
@@ -207,6 +244,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_DELETE && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
@@ -214,6 +253,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		if (selected_keyframe == -1 || (selected_keyframe & 1) == 0)
 			return;
 
@@ -222,6 +263,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		selected_keyframe -= 1;
 		if (selected_keyframe < 0)
 			selected_keyframe = 0;
@@ -232,6 +275,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE)
 	{
+		if (make_vid) return;
+		
 		selected_keyframe += 1;
 		if (selected_keyframe > 2 * mesh_->getNumKeyFrames())
 			selected_keyframe -= 1;

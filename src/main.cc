@@ -22,6 +22,8 @@
 #include <glm/gtx/io.hpp>
 #include <debuggl.h>
 
+#include <stdio.h>
+
 int window_width = 1280;
 int window_height = 720;
 
@@ -411,6 +413,22 @@ int main(int argc, char *argv[])
 
 	auto prev = std::chrono::high_resolution_clock::now();
 
+	FILE *vid_out = NULL;
+	// -y 		: overwrites output files without asking
+	// -f 		: forces output file format
+	// -s 		: set frame size (w x h)
+	// -pix_fmt : set pixel format
+	// -r 		: set frame rate
+	// -i 		: set input file
+	// -an 		: disables audio recording
+	// -b:v		: set bitrate of video
+	const char* cmd = "ffmpeg -r 30 -f rawvideo -pix_fmt rgba -s 960x720 -i - "
+			"-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip animation.mp4";
+
+	vid_out = popen(cmd, "w");
+
+	int* pixels = new int[main_view_width * main_view_height];
+
 	while (!glfwWindowShouldClose(window))
 	{
 		// Setup some basic window stuff.
@@ -634,7 +652,24 @@ int main(int argc, char *argv[])
 		// Poll and swap.
 		glfwPollEvents();
 		glfwSwapBuffers(window);
+
+		// send frame to video
+		if (gui.getMakeVid())
+		{
+			glReadPixels(0, 0, main_view_width, main_view_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+			fwrite(pixels, sizeof(int) * main_view_width * main_view_height, 1, vid_out);
+
+			if (cur_time > mesh.getNumKeyFrames())
+			{
+				gui.setMakeVid(false);
+			}
+		}
+	
 	}
+	// close pipe to video out
+	pclose(vid_out);
+	delete[] pixels;
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
