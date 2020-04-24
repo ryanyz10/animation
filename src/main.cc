@@ -6,6 +6,7 @@
 #include "config.h"
 #include "gui.h"
 #include "texture_to_render.h"
+#include "fonts.h"
 
 #include <memory>
 #include <algorithm>
@@ -75,8 +76,6 @@ const char *bone_fragment_shader =
 #include "shaders/bone.frag"
 	;
 
-// FIXME: Add more shaders here.
-
 const char *cylinder_vertex_shader =
 #include "shaders/cylinder.vert"
 	;
@@ -124,6 +123,7 @@ GLFWwindow *init_glefw()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	// glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GL_FALSE);
 	auto ret = glfwCreateWindow(window_width, window_height, window_title.data(), nullptr, nullptr);
 	CHECK_SUCCESS(ret != nullptr);
 	glfwMakeContextCurrent(ret);
@@ -148,9 +148,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	// create the main window
 	GLFWwindow *window = init_glefw();
 	GUI gui(window, main_view_width, main_view_height, preview_height);
 
+	// load/generate vertices and faces
 	std::vector<glm::vec4> floor_vertices;
 	std::vector<glm::uvec3> floor_faces;
 	create_floor(floor_vertices, floor_faces);
@@ -166,8 +168,8 @@ int main(int argc, char *argv[])
 
 	quad_vertices.push_back(glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
 	quad_vertices.push_back(glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(1.0f, 255.0f / 720.0f, -1.0f, 1.0f));
-	quad_vertices.push_back(glm::vec4(-1.0f, 255.0f / 720.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(1.0f, 3.0f / 8.0f, -1.0f, 1.0f));
+	quad_vertices.push_back(glm::vec4(-1.0f, 3.0f / 8.0f, -1.0f, 1.0f));
 
 	quad_indices.push_back(glm::uvec3(0, 1, 2));
 	quad_indices.push_back(glm::uvec3(2, 3, 0));
@@ -200,14 +202,12 @@ int main(int argc, char *argv[])
 	}
 	mesh_center /= mesh.vertices.size();
 
-	/*
-	 * GUI object needs the mesh object for bone manipulation.
-	 */
 	gui.assignMesh(&mesh);
 
 	glm::vec4 light_position = glm::vec4(0.0f, 100.0f, 0.0f, 1.0f);
-	MatrixPointers mats; // Define MatrixPointers here for lambda to capture
+	MatrixPointers mats;
 
+	// create variables backing uniforms
 	int top_offset = 0;
 	int current_index = 0;
 	int selected_index = 0;
@@ -224,6 +224,7 @@ int main(int argc, char *argv[])
 	int max_samples;
 	glGetIntegerv(GL_MAX_SAMPLES, &max_samples);
 
+	// create uniforms
 	std::function<const glm::mat4 *()> model_data = [&mats]() {
 		return mats.model;
 	};
@@ -334,6 +335,7 @@ int main(int argc, char *argv[])
 		bone_indices.emplace_back(joint.joint_index, joint.parent_index);
 	}
 
+	// Skeleton render pass
 	RenderDataInput bone_pass_input;
 	bone_pass_input.assign(0, "jid", bone_vertex_id.data(), bone_vertex_id.size(), 1, GL_UNSIGNED_INT);
 	bone_pass_input.assignIndex(bone_indices.data(), bone_indices.size(), 2);
@@ -373,6 +375,7 @@ int main(int argc, char *argv[])
 							{frame_shift, show_border, sampler, padding},
 							{"fragment_color"});
 
+	// Scrollbar render pass
 	RenderDataInput scroll_pass_input;
 	scroll_pass_input.assign(0, "vertex_position", scroll_vertices.data(), scroll_vertices.size(), 4, GL_FLOAT);
 	scroll_pass_input.assign(1, "tex_coord_in", quad_uv.data(), quad_uv.size(), 2, GL_FLOAT);
@@ -405,30 +408,37 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// load font and generate textures for needed characters
+	Font font;
+	font.loadFont("../assets/fonts/pixelmix.ttf");
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	for (char c = '0'; c <= '9'; c++)
+	{
+		font.generateChar(c);
+	}
+
+	font.generateChar('s');
+	font.generateChar('.');
+	font.unload();
+
+	// multismpling texture for anti-aliasing
 	TextureToRender main_multisample;
 	main_multisample.create(main_view_width, main_view_height, true, max_samples);
 	main_multisample.unbind();
 
-	GLenum error;
-
+	// timer for animating
 	auto prev = std::chrono::high_resolution_clock::now();
 
+	// setup ffmpeg
 	FILE *vid_out = NULL;
-	// -y 		: overwrites output files without asking
-	// -f 		: forces output file format
-	// -s 		: set frame size (w x h)
-	// -pix_fmt : set pixel format
-	// -r 		: set frame rate
-	// -i 		: set input file
-	// -an 		: disables audio recording
-	// -b:v		: set bitrate of video
-	const char* cmd = "ffmpeg -r 30 -f rawvideo -pix_fmt rgba -s 960x720 -i - "
-			"-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip animation.mp4";
+	const char *cmd = "ffmpeg -r 30 -f rawvideo -pix_fmt rgba -s 960x720 -i - "
+					  "-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip animation.mp4";
 
 	vid_out = popen(cmd, "w");
 
-	int* pixels = new int[main_view_width * main_view_height];
+	int *pixels = new int[main_view_width * main_view_height];
 
+	// main window loop
 	while (!glfwWindowShouldClose(window))
 	{
 		// Setup some basic window stuff.
@@ -497,44 +507,39 @@ int main(int argc, char *argv[])
 
 		int current_bone = gui.getCurrentBone();
 
-		// Draw bones first.
+		// render skeleton
 		if (draw_skeleton && gui.isTransparent())
 		{
 			bone_pass.setup();
-
-			// Draw our lines.
 			CHECK_GL_ERROR(glDrawElements(GL_LINES,
 										  bone_indices.size() * 2,
 										  GL_UNSIGNED_INT, 0));
 		}
 		draw_cylinder = (current_bone != -1 && gui.isTransparent());
 
-		// Then draw cylinder
+		// render selected bone
 		if (draw_cylinder)
 		{
 			cylinder_pass.setup();
-			// Draw our cylinder.
 			CHECK_GL_ERROR(glDrawElements(GL_LINES,
 										  cylinder_mesh.indices.size() * 2,
 										  GL_UNSIGNED_INT, 0));
 			axes_pass.setup();
-			// Draw our cylinder.
 			CHECK_GL_ERROR(glDrawElements(GL_LINES,
 										  axes_mesh.indices.size() * 2,
 										  GL_UNSIGNED_INT, 0));
 		}
 
-		// Then draw floor.
+		// render the floor
 		if (draw_floor)
 		{
 			floor_pass.setup();
-			// Draw our triangles.
 			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
 										  floor_faces.size() * 3,
 										  GL_UNSIGNED_INT, 0));
 		}
 
-		// Draw the model
+		// render the mesh
 		if (draw_object)
 		{
 			object_pass.setup();
@@ -573,7 +578,7 @@ int main(int argc, char *argv[])
 				TextureToRender multisampled;
 				multisampled.create(main_view_width, main_view_height, true, max_samples);
 
-				mesh.updateAnimation(i);
+				mesh.updateWithKeyFrame(i);
 
 				if (draw_floor)
 				{
@@ -664,7 +669,6 @@ int main(int argc, char *argv[])
 				gui.setMakeVid(false);
 			}
 		}
-	
 	}
 	// close pipe to video out
 	pclose(vid_out);

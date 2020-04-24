@@ -326,6 +326,7 @@ void Skeleton::updateFromKeyFrame(const KeyFrame &keyframe)
 
 Mesh::Mesh()
 {
+	delays.push_back(0.0f);
 }
 
 Mesh::~Mesh()
@@ -406,10 +407,13 @@ int Mesh::getNumberOfBones() const
 
 void Mesh::saveToKeyFrame()
 {
-	// FIXME this is inefficient, maybe should be allocated with new and returned as a reference
 	KeyFrame keyframe = skeleton.getKeyFrame();
 	keyframe.texture = nullptr;
 	keyframes.push_back(keyframe);
+
+	delays.push_back(0.0f);
+
+	updateStartTimes();
 }
 
 void Mesh::insertKeyFrame(int index)
@@ -417,6 +421,13 @@ void Mesh::insertKeyFrame(int index)
 	KeyFrame keyframe = skeleton.getKeyFrame();
 	keyframe.texture = nullptr;
 	keyframes.insert(keyframes.begin() + index, keyframe);
+
+	delays.insert(delays.begin() + index + 1, 0.0f);
+
+	delays[index] /= 2;
+	delays[index + 1] = delays[index];
+
+	updateStartTimes();
 }
 
 void Mesh::updateKeyFrame(int index)
@@ -431,6 +442,54 @@ void Mesh::deleteKeyFrame(int index)
 {
 	delete keyframes[index].texture;
 	keyframes.erase(keyframes.begin() + index);
+
+	delays[index] += delays[index + 1];
+	delays.erase(delays.begin() + index + 1);
+
+	updateStartTimes();
+}
+
+void Mesh::addDelay(int index, float duration)
+{
+	delays[index] = duration;
+
+	updateStartTimes();
+}
+
+void Mesh::removeDelay(int index)
+{
+	delays[index] = 0.0f;
+
+	updateStartTimes();
+}
+
+float Mesh::getDelay(int index)
+{
+	return delays[index];
+}
+
+float Mesh::timeAtKeyframe(int keyframe)
+{
+	if (keyframe >= keyframes.size())
+		return -1.0f;
+
+	return start_times[keyframe];
+}
+
+void Mesh::updateStartTimes()
+{
+	if (start_times.size() != keyframes.size())
+		start_times.resize(keyframes.size());
+
+	if (start_times.size() == 0)
+		return;
+
+	float sum = delays[0];
+	for (int i = 0; i < start_times.size(); i++)
+	{
+		start_times[i] = sum;
+		sum += delays[i + 1] > 0 ? delays[i + 1] : 1;
+	}
 }
 
 void Mesh::computeBounds()
@@ -448,23 +507,39 @@ void Mesh::updateAnimation(float t)
 {
 	if (t >= 0)
 	{
-		uint start_t = (int)(std::floor(t));
-		uint end_t = (int)(std::ceil(t));
+		if (t >= start_times[last_frame_index + 1])
+			last_frame_index += 1;
 
-		if (end_t >= keyframes.size())
+		if (last_frame_index + 1 >= keyframes.size())
+			return;
+
+		if (last_frame_index == -1)
 		{
+			skeleton.updateFromKeyFrame(keyframes[0]);
 			return;
 		}
 
-		const KeyFrame &from = keyframes[start_t];
-		const KeyFrame &to = keyframes[end_t];
+		const KeyFrame &from = keyframes[last_frame_index];
+		const KeyFrame &to = keyframes[last_frame_index + 1];
 
 		KeyFrame target;
 
-		KeyFrame::interpolate(from, to, t - start_t, target);
+		float scale = (t - start_times[last_frame_index]) / (start_times[last_frame_index + 1] - start_times[last_frame_index]);
+		KeyFrame::interpolate(from, to, scale, target);
 		skeleton.updateFromKeyFrame(target);
 	}
 
+	skeleton.fix();
+	skeleton.refreshCache();
+	skeleton.refreshCache(&currentQ_);
+}
+
+void Mesh::updateWithKeyFrame(int index)
+{
+	if (index >= keyframes.size())
+		return;
+
+	skeleton.updateFromKeyFrame(keyframes[index]);
 	skeleton.fix();
 	skeleton.refreshCache();
 	skeleton.refreshCache(&currentQ_);

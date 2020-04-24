@@ -156,6 +156,7 @@ struct Mesh
 	glm::vec3 getCenter() const { return 0.5f * glm::vec3(bounds.min + bounds.max); }
 	const Configuration *getCurrentQ() const; // Configuration is abbreviated as Q
 	void updateAnimation(float t = -1.0);
+	void updateWithKeyFrame(int index);
 
 	void saveAnimationTo(const std::string &fn);
 	void loadAnimationFrom(const std::string &fn);
@@ -167,16 +168,29 @@ struct Mesh
 	int getNumKeyFrames() { return keyframes.size(); }
 	std::vector<KeyFrame> &getKeyFrames() { return keyframes; }
 
-	void addDelay(int delay_num, int duration);
-	std::map<int, int> &getDelays() { return delays; }
+	void addDelay(int index, float duration);
+	void removeDelay(int index);
+	float getDelay(int index);
+	std::vector<float> &getDelays() { return delays; }
+
+	float timeAtKeyframe(int keyframe);
+
+	void resetLastFrame() { last_frame_index = -1; }
 
 private:
 	void computeBounds();
 	void computeNormals();
 	Configuration currentQ_;
 
-	std::vector<KeyFrame> keyframes;
-	std::map<int, int> delays;
+	float last_frame_index = -1;
+
+	// length of delays = length of keyframes + 1
+	std::vector<KeyFrame>
+		keyframes;
+	std::vector<float> delays;
+	std::vector<float> start_times;
+
+	void updateStartTimes();
 };
 
 #endif

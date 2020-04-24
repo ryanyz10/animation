@@ -99,4 +99,5 @@ User input is ignored while recording is taking place until the end is reached.
 
 TODO might need to add something to CMakeLists.txt
 
-### TBD
+### Time Delays
+Install the `freetype` library, either through `brew` or `apt`. 
