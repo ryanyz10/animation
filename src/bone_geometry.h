@@ -176,6 +176,7 @@ struct Mesh
 	float timeAtKeyframe(int keyframe);
 
 	void resetLastFrame() { last_frame_index = -1; }
+	float totalRunningTime() { return start_times[start_times.size() - 1]; }
 
 private:
 	void computeBounds();
@@ -185,8 +186,7 @@ private:
 	float last_frame_index = -1;
 
 	// length of delays = length of keyframes + 1
-	std::vector<KeyFrame>
-		keyframes;
+	std::vector<KeyFrame> keyframes;
 	std::vector<float> delays;
 	std::vector<float> start_times;
 

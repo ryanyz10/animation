@@ -664,7 +664,7 @@ int main(int argc, char *argv[])
 			glReadPixels(0, 0, main_view_width, main_view_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 			fwrite(pixels, sizeof(int) * main_view_width * main_view_height, 1, vid_out);
 
-			if (cur_time > mesh.getNumKeyFrames())
+			if (cur_time > mesh.totalRunningTime())
 			{
 				gui.setMakeVid(false);
 			}
