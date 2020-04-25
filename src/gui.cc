@@ -267,8 +267,14 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 			return;
 
 		if ((selected_keyframe & 1) == 0)
+		{
 			if (mesh_->getDelay(selected_keyframe >> 1) > 0.0f)
+			{
 				mesh_->removeDelay(selected_keyframe >> 1);
+			}
+
+			return;
+		}
 
 		mesh_->deleteKeyFrame(selected_keyframe >> 1);
 	}
@@ -281,7 +287,7 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 			return;
 
 		// TODO should we pause?
-		mesh_->updateAnimation(selected_keyframe >> 1);
+		mesh_->updateWithKeyFrame(selected_keyframe >> 1);
 	}
 	else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE)
 	{

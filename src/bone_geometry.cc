@@ -381,7 +381,6 @@ void Mesh::loadPmd(const std::string &fn)
 		weight_for_joint0.push_back(weights[i].weight0);
 
 		// initialize vector_from_joint#
-
 		const glm::vec3 curr_vert = glm::vec3(vertices[vid]);
 		vector_from_joint0.push_back(curr_vert - skeleton.joints[jid0].position);
 		if (jid1 < 0)
