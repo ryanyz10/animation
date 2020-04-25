@@ -93,7 +93,7 @@ A note about both anti-aliasing, the effect seems to be very slight, at least on
 ### Save to video
 Install the `ffmpeg` libary with `sudo apt-get install ffmpeg`
 
-We used the `ffmpeg` library to output the animation to an `.mp4` file. We followed (this source)[http://blog.mmacklin.com/2013/06/11/real-time-video-capture-with-ffmpeg/]. We basically run `ffmpeg` and open a pipe from our program as its input. Whenever the user releases `Ctrl+V`, the animation will play from the beginning and frames will be read and sent to `ffmpeg`. When the program is closed, then the pipe is closed and the video is created. 
+We used the `ffmpeg` library to output the animation to an `.mp4` file. We followed (this source)[http://blog.mmacklin.com/2013/06/11/real-time-video-capture-with-ffmpeg/]. We basically run `ffmpeg` and open a pipe from our program as its input. The user is given a prompt to selection the filename to which we'll save. Whenever the user releases `Ctrl+V`, the animation will play from the beginning and frames will be read and sent to `ffmpeg`. When the animation's end is reached, the pipe is closed and the video is created. You can then save another video.
 
 User input is ignored while recording is taking place until the end is reached.
 

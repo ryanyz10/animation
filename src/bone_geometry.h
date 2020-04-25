@@ -176,7 +176,7 @@ struct Mesh
 	float timeAtKeyframe(int keyframe);
 
 	void resetLastFrame() { last_frame_index = -1; }
-	float totalRunningTime() { return start_times[start_times.size() - 1]; }
+	float totalRunningTime() { if (start_times.size() == 0) return 0.0f; return start_times[start_times.size() - 1]; }
 
 private:
 	void computeBounds();

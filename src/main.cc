@@ -432,9 +432,11 @@ int main(int argc, char *argv[])
 	// setup ffmpeg
 	FILE *vid_out = NULL;
 	const char *cmd = "ffmpeg -r 30 -f rawvideo -pix_fmt rgba -s 960x720 -i - "
-					  "-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip animation.mp4";
+					  "-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip ";
 
-	vid_out = popen(cmd, "w");
+	// vid_out = popen(cmd, "w");
+
+	bool recording = false;
 
 	int *pixels = new int[main_view_width * main_view_height];
 
@@ -659,7 +661,7 @@ int main(int argc, char *argv[])
 		glfwSwapBuffers(window);
 
 		// send frame to video
-		if (gui.getMakeVid())
+		if (recording)
 		{
 			glReadPixels(0, 0, main_view_width, main_view_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 			fwrite(pixels, sizeof(int) * main_view_width * main_view_height, 1, vid_out);
@@ -667,11 +669,33 @@ int main(int argc, char *argv[])
 			if (cur_time > mesh.totalRunningTime())
 			{
 				gui.setMakeVid(false);
+				recording = false;
+
+				// close pipe to video out
+				pclose(vid_out);
 			}
 		}
+
+		// start recording pipe
+		if (!recording && gui.getMakeVid())
+		{
+			recording = true;
+
+			const char *dest_fn = gui.getVideoFilename().c_str();
+			char *cmd_copy = new char[strlen(cmd) + strlen(dest_fn) + 1];
+
+			strcpy(cmd_copy, cmd);
+			strcat(cmd_copy, dest_fn);
+
+			vid_out = popen(cmd_copy, "w");
+
+			delete[] cmd_copy;
+		}
 	}
-	// close pipe to video out
-	pclose(vid_out);
+	// close pipe to video out if still going
+	if (recording)
+		pclose(vid_out);
+
 	delete[] pixels;
 
 	glfwDestroyWindow(window);

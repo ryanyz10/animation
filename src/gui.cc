@@ -124,10 +124,27 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 
 		if (action == GLFW_RELEASE)
 		{
+
+			const char *input = tinyfd_inputBox("Save to video", "Filename to save to:", "animation.mp4");
+
+			if (!input)
+				return;
+
+			std::string filename(input);
+			int length = filename.length();
+
+			if (length < 4 || filename.substr(length - 4) != ".mp4")
+			{
+				filename += ".mp4";
+			}
+			vid_fn = filename;
+
 			make_vid = true;
 
 			play_ = true;
-			current_play_time = 0.0f;
+			current_play_time = -1.0f;
+			mesh_->resetLastFrame();
+			mesh_->updateAnimation(current_play_time);
 		}
 	}
 

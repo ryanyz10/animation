@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
+#include <string>
 
 struct Mesh;
 
@@ -59,7 +60,8 @@ public:
 	int getSelectedKeyframe() const { return selected_keyframe; }
 
 	const bool getMakeVid() { return make_vid; }
-	void setMakeVid(bool mv){ make_vid = mv; }
+	void setMakeVid(bool mv){ make_vid = mv; }//play_ = false; }
+	std::string getVideoFilename() { return vid_fn; }
 
 private:
 	GLFWwindow *window_;
@@ -106,6 +108,7 @@ private:
 	bool play_ = false;
 
 	bool make_vid = false;
+	std::string vid_fn;
 };
 
 #endif

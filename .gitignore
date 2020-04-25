@@ -39,3 +39,5 @@ third-party/
 .vscode/
 cmake/
 build/
+
+.DS_Store
