@@ -16,8 +16,8 @@
 - [x] 15. Scrollbar for preview scrolling
 - [x] 16. Anti-aliased previews
 - [x] 17. Anti-aliased main window
-- [ ] 18. Command to export in a video format
-- [ ] 19. Insert time delays between keyframes
+- [x] 18. Command to export in a video format
+- [x] 19. Insert time delays between keyframes
 - [ ] 20. Red line advances while playing
 
 ## Point Values
@@ -100,4 +100,8 @@ User input is ignored while recording is taking place until the end is reached.
 TODO might need to add something to CMakeLists.txt
 
 ### Time Delays
-Install the `freetype` library, either through `brew` or `apt`. 
+To implement delays, we created a vector containing the delays between each frame, as well as a vector tracking the start time of each keyframe. We then updated the `updateAnimation` function to handle these changes -- our original assumption was that each keyframe took one second which no longer held true. To enter a delay, highlight a buffer and press `shift+t`. This will popup with a dialog to enter the delay duration. 
+
+When inserting a keyframe on a delay, the delay is split with half the time coming before and half the time after. When deleting a keyframe, the delays on either side are merged.
+
+We weren't able to get text rendering done (having issues with getting `truetype` to link correctly) so we weren't able to finish that part of it. The idea would've been to render the font to a texture and then texture quads representing the letters.

@@ -6,7 +6,7 @@
 #include "config.h"
 #include "gui.h"
 #include "texture_to_render.h"
-#include "fonts.h"
+// #include "fonts.h"
 
 #include <memory>
 #include <algorithm>
@@ -409,17 +409,17 @@ int main(int argc, char *argv[])
 	}
 
 	// load font and generate textures for needed characters
-	Font font;
-	font.loadFont("../assets/fonts/pixelmix.ttf");
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	for (char c = '0'; c <= '9'; c++)
-	{
-		font.generateChar(c);
-	}
+	// Font font;
+	// font.loadFont("../assets/fonts/pixelmix.ttf");
+	// glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	// for (char c = '0'; c <= '9'; c++)
+	// {
+	// 	font.generateChar(c);
+	// }
 
-	font.generateChar('s');
-	font.generateChar('.');
-	font.unload();
+	// font.generateChar('s');
+	// font.generateChar('.');
+	// font.unload();
 
 	// multismpling texture for anti-aliasing
 	TextureToRender main_multisample;
